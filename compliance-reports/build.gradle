@@ -5,6 +5,7 @@ plugins {
 dependencies {
   implementation libs.jakarta.inject.api
   implementation mn.jsr305
+  implementation libs.commons.io
 
   testImplementation libs.junit.pioneer
   testImplementation mn.assertj.core
