@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2022-2025 SonarSource SA
+ * Copyright (C) 2022-2025 SonarSource Sàrl
  * All rights reserved
  * mailto:info AT sonarsource DOT com
  */
-
 package io.sonarcloud.compliancereports.ingestion;
 
 import io.sonarcloud.compliancereports.dao.IssueStats;
