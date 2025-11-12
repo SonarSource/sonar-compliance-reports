@@ -8,7 +8,6 @@ package io.sonarcloud.compliancereports.ingestion;
 
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -28,12 +27,14 @@ class IssueIngestionServiceTest {
   @Test
   void onIngestion_shouldPopulateDataStore() {
     var issues = List.of(
-      new IssueFromAnalysis("java:1", false, 2),
-      new IssueFromAnalysis("java:1", false, 2),
-      new IssueFromAnalysis("java:1", false, 2),
-      new IssueFromAnalysis("python:42", false, 3),
-      new IssueFromAnalysis("python:42", false, 3),
-      new IssueFromAnalysis("cs:100", true, 5)
+      new IssueFromAnalysis("java:1", "OPEN", false, 2),
+      new IssueFromAnalysis("java:1", "OPEN", false, 2),
+      new IssueFromAnalysis("java:1", "OPEN", false, 2),
+      new IssueFromAnalysis("python:42", "OPEN", false, 3),
+      new IssueFromAnalysis("python:42", "OPEN", false, 3),
+      new IssueFromAnalysis("python:42", "FIXED", false, 3),
+      new IssueFromAnalysis("cs:100", "TO_REVIEW", true, 5),
+      new IssueFromAnalysis("cs:100", "REVIEWED", true, 5)
     );
 
     underTest.ingest(PROJECT_ID, issues);
@@ -46,9 +47,9 @@ class IssueIngestionServiceTest {
     assertThat(capturedIssues)
       .hasSize(3)
       .containsExactlyInAnyOrder(
-        new IssueStats("java:1", 3, 2, 0, 1),
-        new IssueStats("python:42", 2, 3, 0, 1),
-        new IssueStats("cs:100", 0, 1, 1, 5)
+        new IssueStats("java:1", 3, 2, 0, 0),
+        new IssueStats("python:42", 2, 3, 0, 0),
+        new IssueStats("cs:100", 0, 1, 1, 1)
       );
   }
 }

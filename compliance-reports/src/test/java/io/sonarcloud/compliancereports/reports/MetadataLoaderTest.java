@@ -10,16 +10,12 @@ import io.sonarcloud.compliancereports.reports.metadata.CweMetadataType;
 import io.sonarcloud.compliancereports.reports.metadata.MetadataType;
 import io.sonarcloud.compliancereports.reports.metadata.StigMetadataType;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MetadataLoaderTest {
 
@@ -28,56 +24,49 @@ class MetadataLoaderTest {
     @Test
     void shouldThrowUnableToGetFileContents() {
       MetadataType faultyMetadataType = () -> "NonExistentFile.yml";
-      assertThatThrownBy(() -> new MetadataLoader(Map.of("FaultyMetadataType", faultyMetadataType)))
+      Set<MetadataType> metadataTypes = Set.of(faultyMetadataType);
+      assertThatThrownBy(() -> new MetadataLoader(metadataTypes))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Unable to load metadata: FaultyMetadataType");
-    }
-
-    @Test
-    void shouldThrowUnableToGetBeanException() {
-      MetadataLoader loader = new MetadataLoader(Map.of());
-      Exception exception = assertThrows(IllegalStateException.class, () -> loader.getMetadataAsString("NonExistentMetadataType"));
-      assertEquals("Unable to get bean for: NonExistentMetadataType", exception.getMessage());
+        .hasMessage("Unable to load metadata: NonExistentFile.yml");
     }
 
     @Test
     void shouldGetCweMetadata() {
       MetadataType cweMetadataType = new CweMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Map.of("CweMetadataType", cweMetadataType));
-      String metadataContent = metaDataLoader.getMetadataAsString("CweMetadataType");
-      assertNotNull(metadataContent);
-      assertFalse(metadataContent.isEmpty());
-      String expectedHead = """
-        report:
-          name: CWE - Common Weakness Enumeration
-          description: CWE - Common Weakness Enumeration""";
-      assertTrue(metadataContent.startsWith(expectedHead));
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(cweMetadataType));
+      Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
+
+      assertThat(metadata)
+        .hasEntrySatisfying("cwe", cweBuckets -> {
+          assertThat(cweBuckets.getBuckets()).hasSize(969);
+        })
+        .hasEntrySatisfying("cweTop25_2024", cweBuckets -> {
+          assertThat(cweBuckets.getBuckets()).hasSize(25);
+        });
     }
 
     @Test
     void shouldGetASVSMetadata() {
       MetadataType asvsMetadataType = new ASVSMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Map.of("ASVSMetadataType", asvsMetadataType));
-      String metadataContent = metaDataLoader.getMetadataAsString("ASVSMetadataType");
-      assertNotNull(metadataContent);
-      assertFalse(metadataContent.isEmpty());
-      String expectedHead = """
-        report:
-          name: Application Security Verification Standard Project""";
-      assertTrue(metadataContent.startsWith(expectedHead));
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(asvsMetadataType));
+      Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
+
+      assertThat(metadata)
+        .hasEntrySatisfying("asvs4.0.3", asvsBuckets -> {
+          assertThat(asvsBuckets.getBuckets()).hasSize(369);
+        });
     }
 
     @Test
     void shouldGetStigMetadata() {
       MetadataType stigMetadataType = new StigMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Map.of("StigMetadataType", stigMetadataType));
-      String metadataContent = metaDataLoader.getMetadataAsString("StigMetadataType");
-      assertNotNull(metadataContent);
-      assertFalse(metadataContent.isEmpty());
-      String expectedHead = """
-        report:
-          name: Application Security and Development Security Technical Implementation Guide""";
-      assertTrue(metadataContent.startsWith(expectedHead));
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(stigMetadataType));
+      Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
+
+      assertThat(metadata)
+        .hasEntrySatisfying("stigASD_V5R3", stigBuckets -> {
+          assertThat(stigBuckets.getBuckets()).hasSize(286);
+        });
     }
   }
 
@@ -85,19 +74,9 @@ class MetadataLoaderTest {
   class WhenGettingAllMetadata {
     @Test
     void shouldGetAllMetadata() {
-      MetadataLoader metaDataLoader = new MetadataLoader(Map.of(
-        "CweMetadataType", new CweMetadataType(),
-        "ASVSMetadataType", new ASVSMetadataType(),
-        "StigMetadataType", new StigMetadataType()
-      ));
-      Map<String, String> allMetadata = metaDataLoader.getAllMetadata();
-      assertThat(allMetadata.keySet()).containsExactlyInAnyOrder(
-        "CweMetadataType",
-        "ASVSMetadataType",
-        "StigMetadataType"
-      );
-      assertThat(allMetadata.values())
-        .allSatisfy(value -> assertThat(value).startsWith("report:"));
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(new CweMetadataType(), new ASVSMetadataType(), new StigMetadataType()));
+      Map<String, RuleBuckets> allMetadata = metaDataLoader.getAllMetadata();
+      assertThat(allMetadata.keySet()).containsExactlyInAnyOrder("cwe", "cweTop25_2024", "asvs4.0.3", "stigASD_V5R3");
     }
   }
 }

@@ -6,5 +6,5 @@
 
 package io.sonarcloud.compliancereports.ingestion;
 
-public record IssueFromAnalysis(String ruleKey, boolean isHotspot, int severity) {
+public record IssueFromAnalysis(String ruleKey, String status, boolean isHotspot, int severity) {
 }

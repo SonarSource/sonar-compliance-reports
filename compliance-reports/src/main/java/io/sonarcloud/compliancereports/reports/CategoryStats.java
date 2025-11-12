@@ -6,5 +6,5 @@
 
 package io.sonarcloud.compliancereports.reports;
 
-public record CategoryStats(int totalIssues, int totalHotspots, int rating, int hotspotRating, int activeRules) {
+public record CategoryStats(int openIssues, int toReviewHotspots, int rating, int hotspotRating, int activeRules) {
 }

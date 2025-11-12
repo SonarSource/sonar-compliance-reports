@@ -1,5 +1,6 @@
 report:
   name: Application Security Verification Standard Project
+  key: asvs
   description: The Application Security Verification Standard is a list of application
     security requirements or tests that can be used by architects, developers, testers,
     security professionals, tool vendors, and consumers to define, build, test and
@@ -26,6 +27,7 @@ report:
         application that requires the highest level of trust
   versions:
   - name: ASVS 4.0.3
+    key: 4.0.3
     description: The Application Security Verification Standard is a list of application
       security requirements or tests that can be used by architects, developers, testers,
       security professionals, tool vendors, and consumers to define, build, test and

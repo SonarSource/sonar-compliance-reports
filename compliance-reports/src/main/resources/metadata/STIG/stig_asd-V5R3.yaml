@@ -1,5 +1,6 @@
 report:
   name: Application Security and Development Security Technical Implementation Guide
+  key: stig
   description: 'This Security Technical Implementation Guide is published as a tool
     to improve the security of Department of Defense (DOD) information systems. The
     requirements are derived from the National Institute of Standards and Technology
@@ -10,6 +11,7 @@ report:
     category: Group
   versions:
   - name: STIG ASD_V5R3
+    key: ASD_V5R3
     description: 'This Security Technical Implementation Guide is published as a tool
       to improve the security of Department of Defense (DOD) information systems.
       The requirements are derived from the National Institute of Standards and Technology

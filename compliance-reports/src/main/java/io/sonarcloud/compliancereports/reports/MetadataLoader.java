@@ -5,41 +5,46 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sonarcloud.compliancereports.reports.metadata.MetadataType;
+import io.sonarcloud.compliancereports.reports.metadata.ReportMetadataSchema;
 import jakarta.inject.Singleton;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.io.IOUtils;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
+import org.yaml.snakeyaml.Yaml;
 
 @Singleton
 public class MetadataLoader {
 
-  public static final String METADATA_RESOURCE_DIR = "metadata/";
-  private final Map<String, MetadataType> classNameToTypeBeans;
-  private final Map<String, String> typeToStringContent;
+  private static final String METADATA_RESOURCE_DIR = "metadata/";
+  private final Map<String, RuleBuckets> allMetadata;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final Yaml yaml = new Yaml();
 
-  public MetadataLoader(Map<String, MetadataType> classNameToTypeBeans) {
-    this.classNameToTypeBeans = classNameToTypeBeans;
-    this.typeToStringContent = classNameToTypeBeans.keySet().stream().collect(Collectors.toMap(key -> key, this::getMetadataAsString, (a, b) -> b, HashMap::new));
+  public MetadataLoader(Set<MetadataType> metadataTypes) {
+    allMetadata = metadataTypes.stream()
+      .map(metadataType -> parseMetadata(metadataType).report())
+      // produce buckets for each version in the report
+      .flatMap(parsed -> parsed.versions().stream().map(version -> new RuleBuckets(parsed.key(), version)))
+      .collect(Collectors.toMap(RuleBuckets::getKey, Function.identity()));
   }
 
-  public String getMetadataAsString(String metadataType) {
-    MetadataType type = classNameToTypeBeans.get(metadataType);
-    if (type == null) {
-      throw new IllegalStateException("Unable to get bean for: " + metadataType);
-    }
+  private ReportMetadataSchema parseMetadata(MetadataType type) {
     try {
-      return IOUtils.toString(requireNonNull(getClass().getClassLoader().getResourceAsStream(METADATA_RESOURCE_DIR + type.getResourceFileName())), UTF_8);
+      var resourceFileStream = getClass().getClassLoader().getResourceAsStream(METADATA_RESOURCE_DIR + type.getResourceFileName());
+      // parse with SnakeYAML first to resolve YAML anchors/references
+      // (https://stackoverflow.com/questions/40074700/jackson-yaml-support-for-anchors-and-references)
+      var yamlObj = yaml.loadAs(resourceFileStream, Object.class);
+      // convert to JSON, then reparse with Jackson so we can use records
+      return objectMapper.readValue(objectMapper.writeValueAsString(yamlObj), ReportMetadataSchema.class);
     } catch (Exception e) {
-      throw new IllegalStateException("Unable to load metadata: " + metadataType);
+      throw new IllegalStateException("Unable to load metadata: " + type.getResourceFileName(), e);
     }
   }
 
-  public Map<String, String> getAllMetadata() {
-    return typeToStringContent;
+  public Map<String, RuleBuckets> getAllMetadata() {
+    return allMetadata;
   }
 }

@@ -18,6 +18,11 @@ import java.util.stream.Collectors;
 @Singleton
 public class IssueIngestionService {
 
+  private enum IssueStatus {
+    TO_REVIEW,
+    OPEN
+  }
+
   private final IssueStatsByRuleKeyDao issueStatsByRuleKeyDao;
 
   public IssueIngestionService(IssueStatsByRuleKeyDao issueStatsByRuleKeyDao) {
@@ -43,20 +48,23 @@ public class IssueIngestionService {
   private IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
     int issueCount = 0;
     int issueRating = 1;
-    int hotspotCount = 0;
-    int hotspotRating = 1;
+    int hotspotsToReview = 0;
+    int hotspotsReviewed = 0;
 
     for (IssueFromAnalysis issue : issues) {
       if (issue.isHotspot()) {
-        hotspotCount++;
-        hotspotRating = Math.max(hotspotRating, issue.severity());
-      } else {
+        if (IssueStatus.TO_REVIEW.toString().equals(issue.status())) {
+          hotspotsToReview++;
+        } else {
+          hotspotsReviewed++;
+        }
+      } else if (IssueStatus.OPEN.toString().equals(issue.status())) {
         issueCount++;
         issueRating = Math.max(issueRating, issue.severity());
       }
     }
 
-    return new IssueStats(ruleKey, issueCount, issueRating, hotspotCount, hotspotRating);
+    return new IssueStats(ruleKey, issueCount, issueRating, hotspotsToReview, hotspotsReviewed);
   }
 
 }

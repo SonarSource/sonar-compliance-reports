@@ -1,11 +1,13 @@
 report:
   name: CWE - Common Weakness Enumeration
+  key: cwe
   description: CWE - Common Weakness Enumeration
   classification: SECURITY
   taxonomy:
     category: Weakness
   versions:
     - name: CWE
+      key: ""
       description: CWE - Common Weakness Enumeration
       categories:
         - name: 1004
@@ -2464,6 +2466,7 @@ report:
         - name: 99
           description: Improper Control of Resource Identifiers ('Resource Injection')
     - name: CWE Top 25 2024
+      key: Top25_2024
       description: CWE Top 25 Most Dangerous Software Weaknesses 2024
       categories:
         - *cwe119
