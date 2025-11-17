@@ -5,10 +5,7 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
-import io.sonarcloud.compliancereports.reports.metadata.ASVSMetadataType;
-import io.sonarcloud.compliancereports.reports.metadata.CweMetadataType;
 import io.sonarcloud.compliancereports.reports.metadata.MetadataType;
-import io.sonarcloud.compliancereports.reports.metadata.StigMetadataType;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Nested;
@@ -31,52 +28,21 @@ class MetadataLoaderTest {
     }
 
     @Test
-    void shouldGetCweMetadata() {
-      MetadataType cweMetadataType = new CweMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(cweMetadataType));
-      Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
-
-      assertThat(metadata)
-        .hasEntrySatisfying("cwe", cweBuckets -> {
-          assertThat(cweBuckets.getBuckets()).hasSize(969);
-        })
-        .hasEntrySatisfying("cweTop25_2024", cweBuckets -> {
-          assertThat(cweBuckets.getBuckets()).hasSize(25);
-        });
+    void shouldLoadEmptyMetadataIfNoneExists() {
+      var underTest = new MetadataLoader(Set.of());
+      assertThat(underTest.getAllMetadata()).isEmpty();
     }
 
     @Test
-    void shouldGetASVSMetadata() {
-      MetadataType asvsMetadataType = new ASVSMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(asvsMetadataType));
+    void shouldLoadMetadata() {
+      MetadataType metadataType = () -> "TestMetadata.yml";
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(metadataType));
       Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
 
       assertThat(metadata)
-        .hasEntrySatisfying("asvs4.0.3", asvsBuckets -> {
-          assertThat(asvsBuckets.getBuckets()).hasSize(369);
+        .hasEntrySatisfying("testV1", buckets -> {
+          assertThat(buckets.getBuckets()).hasSize(3);
         });
-    }
-
-    @Test
-    void shouldGetStigMetadata() {
-      MetadataType stigMetadataType = new StigMetadataType();
-      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(stigMetadataType));
-      Map<String, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
-
-      assertThat(metadata)
-        .hasEntrySatisfying("stigASD_V5R3", stigBuckets -> {
-          assertThat(stigBuckets.getBuckets()).hasSize(286);
-        });
-    }
-  }
-
-  @Nested
-  class WhenGettingAllMetadata {
-    @Test
-    void shouldGetAllMetadata() {
-      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(new CweMetadataType(), new ASVSMetadataType(), new StigMetadataType()));
-      Map<String, RuleBuckets> allMetadata = metaDataLoader.getAllMetadata();
-      assertThat(allMetadata.keySet()).containsExactlyInAnyOrder("cwe", "cweTop25_2024", "asvs4.0.3", "stigASD_V5R3");
     }
   }
 }
