@@ -10,5 +10,5 @@ import java.util.UUID;
 
 public interface ActiveRuleDao {
 
-  Set<String> getActiveRuleKeys(UUID aggregationId, AggregationType aggregationType);
+  Set<String> getActiveRuleKeys(String aggregationId, AggregationType aggregationType);
 }

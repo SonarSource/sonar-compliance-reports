@@ -12,24 +12,24 @@ import java.util.UUID;
 
 public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
 
-  private final Map<UUID, List<IssueStats>> dataStore = new HashMap<>();
+  private final Map<String, List<IssueStats>> dataStore = new HashMap<>();
 
   @Override
-  public List<IssueStats> getIssueStats(UUID aggregationId, AggregationType aggregationType) {
+  public List<IssueStats> getIssueStats(String aggregationId, AggregationType aggregationType) {
     return dataStore.get(aggregationId);
   }
 
   @Override
-  public void insertIssueStats(UUID aggregationId, AggregationType aggregationType, List<IssueStats> issueStats) {
+  public void insertIssueStats(String aggregationId, AggregationType aggregationType, List<IssueStats> issueStats) {
     dataStore.put(aggregationId, issueStats);
   }
 
   @Override
-  public void deleteAllIssueStats(UUID aggregationId, AggregationType aggregationType) {
+  public void deleteAllIssueStats(String aggregationId, AggregationType aggregationType) {
     dataStore.remove(aggregationId);
   }
 
-  public Map<UUID, List<IssueStats>> getDataStore() {
+  public Map<String, List<IssueStats>> getDataStore() {
     return dataStore;
   }
 }

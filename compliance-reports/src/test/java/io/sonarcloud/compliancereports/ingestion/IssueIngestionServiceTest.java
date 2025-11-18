@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verify;
 
 class IssueIngestionServiceTest {
 
-  private static final UUID PROJECT_ID = UUID.randomUUID();
+  private static final String PROJECT_ID = UUID.randomUUID().toString();
   private final IssueStatsByRuleKeyDao dao = mock();
   private final IssueIngestionService underTest = new IssueIngestionService(dao);
 

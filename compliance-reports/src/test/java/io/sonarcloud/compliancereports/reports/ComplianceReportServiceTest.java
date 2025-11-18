@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 class ComplianceReportServiceTest {
 
-  private static final UUID PROJECT_ID = UUID.randomUUID();
+  private static final String PROJECT_ID = UUID.randomUUID().toString();
   private final IssueStatsByRuleKeyDao issueStatsByRuleKeyDao = mock();
   private final ActiveRuleDao activeRuleDao = mock();
   private final MetadataLoader metadataLoader = mock();

@@ -31,7 +31,7 @@ public class ComplianceReportService {
     this.metadataLoader = metadataLoader;
   }
 
-  public Map<String, CategoryStats> getComplianceReport(UUID aggregationId, AggregationType aggregationType, String standard) {
+  public Map<String, CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, String standard) {
     RuleBuckets ruleKeysByCategory = metadataLoader.getAllMetadata().get(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     Map<String, IssueStats> issueStatsByRuleKey = loadIssueStats(aggregationId, aggregationType);
@@ -82,7 +82,7 @@ public class ComplianceReportService {
     return report;
   }
 
-  private Map<String, IssueStats> loadIssueStats(UUID aggregationId, AggregationType aggregationType) {
+  private Map<String, IssueStats> loadIssueStats(String aggregationId, AggregationType aggregationType) {
     return issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType).stream()
       .collect(Collectors.toMap(IssueStats::ruleKey, Function.identity()));
   }

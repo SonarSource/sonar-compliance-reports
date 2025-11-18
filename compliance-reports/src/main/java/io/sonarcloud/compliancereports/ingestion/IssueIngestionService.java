@@ -29,7 +29,7 @@ public class IssueIngestionService {
     this.issueStatsByRuleKeyDao = issueStatsByRuleKeyDao;
   }
 
-  public void ingest(UUID aggregationId, AggregationType aggregationType, List<IssueFromAnalysis> issueData) {
+  public void ingest(String aggregationId, AggregationType aggregationType, List<IssueFromAnalysis> issueData) {
     List<IssueStats> issueStats = calculateIssueStats(issueData);
     issueStatsByRuleKeyDao.deleteAllIssueStats(aggregationId, aggregationType);
     issueStatsByRuleKeyDao.insertIssueStats(aggregationId, aggregationType, issueStats);
