@@ -6,8 +6,9 @@
 package io.sonarcloud.compliancereports.reports;
 
 import io.sonarcloud.compliancereports.dao.ActiveRuleDao;
-import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
+import io.sonarcloud.compliancereports.dao.AggregationType;
 import io.sonarcloud.compliancereports.dao.IssueStats;
+import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
 import jakarta.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,11 +31,10 @@ public class ComplianceReportService {
     this.metadataLoader = metadataLoader;
   }
 
-  public Map<String, CategoryStats> getComplianceReportForProject(UUID projectId, String standard) {
-    Map<String, RuleBuckets> ruleMetadata = metadataLoader.getAllMetadata();
-    RuleBuckets ruleKeysByCategory = ruleMetadata.get(standard);
-    Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeysForProject(projectId);
-    Map<String, IssueStats> issueStatsByRuleKey = loadIssueStatsForProject(projectId);
+  public Map<String, CategoryStats> getComplianceReport(UUID aggregationId, AggregationType aggregationType, String standard) {
+    RuleBuckets ruleKeysByCategory = metadataLoader.getAllMetadata().get(standard);
+    Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
+    Map<String, IssueStats> issueStatsByRuleKey = loadIssueStats(aggregationId, aggregationType);
     Map<String, CategoryStats> report = new HashMap<>();
 
     for (RuleBuckets.RuleBucket bucket : ruleKeysByCategory.getBuckets()) {
@@ -82,8 +82,8 @@ public class ComplianceReportService {
     return report;
   }
 
-  private Map<String, IssueStats> loadIssueStatsForProject(UUID projectId) {
-    return issueStatsByRuleKeyDao.getIssueStatsForProject(projectId).stream()
+  private Map<String, IssueStats> loadIssueStats(UUID aggregationId, AggregationType aggregationType) {
+    return issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType).stream()
       .collect(Collectors.toMap(IssueStats::ruleKey, Function.identity()));
   }
 

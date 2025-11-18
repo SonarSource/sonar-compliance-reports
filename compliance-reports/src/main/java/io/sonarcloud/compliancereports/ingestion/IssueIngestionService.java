@@ -5,6 +5,7 @@
  */
 package io.sonarcloud.compliancereports.ingestion;
 
+import io.sonarcloud.compliancereports.dao.AggregationType;
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
 import jakarta.inject.Singleton;
@@ -28,10 +29,10 @@ public class IssueIngestionService {
     this.issueStatsByRuleKeyDao = issueStatsByRuleKeyDao;
   }
 
-  public void ingest(UUID projectId, List<IssueFromAnalysis> issueData) {
+  public void ingest(UUID aggregationId, AggregationType aggregationType, List<IssueFromAnalysis> issueData) {
     List<IssueStats> issueStats = calculateIssueStats(issueData);
-    issueStatsByRuleKeyDao.deleteAllIssueStatsForProject(projectId);
-    issueStatsByRuleKeyDao.insertIssueStatsForProject(projectId, issueStats);
+    issueStatsByRuleKeyDao.deleteAllIssueStats(aggregationId, aggregationType);
+    issueStatsByRuleKeyDao.insertIssueStats(aggregationId, aggregationType, issueStats);
   }
 
   private List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {

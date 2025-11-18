@@ -10,9 +10,9 @@ import java.util.UUID;
 
 public interface IssueStatsByRuleKeyDao {
 
-  List<IssueStats> getIssueStatsForProject(UUID projectId);
+  List<IssueStats> getIssueStats(UUID aggregationId, AggregationType aggregationType);
 
-  void insertIssueStatsForProject(UUID projectId, List<IssueStats> issueStats);
+  void insertIssueStats(UUID aggregationId, AggregationType aggregationType, List<IssueStats> issueStats);
 
-  void deleteAllIssueStatsForProject(UUID projectId);
+  void deleteAllIssueStats(UUID aggregationId, AggregationType aggregationType);
 }

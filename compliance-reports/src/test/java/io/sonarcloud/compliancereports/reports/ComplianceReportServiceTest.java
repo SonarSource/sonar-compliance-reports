@@ -6,6 +6,7 @@
 package io.sonarcloud.compliancereports.reports;
 
 import io.sonarcloud.compliancereports.dao.ActiveRuleDao;
+import io.sonarcloud.compliancereports.dao.AggregationType;
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
+import static io.sonarcloud.compliancereports.dao.AggregationType.PROJECT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,7 +44,7 @@ class ComplianceReportServiceTest {
     when(metadataLoader.getAllMetadata())
       .thenReturn(Map.of("owasp2025", ruleBuckets));
 
-    when(issueStatsByRuleKeyDao.getIssueStatsForProject(PROJECT_ID))
+    when(issueStatsByRuleKeyDao.getIssueStats(PROJECT_ID, PROJECT))
       .thenReturn(List.of(
         new IssueStats("java:1", 100, 3, 0, 0),
         new IssueStats("java:7", 0, 1, 3, 7),
@@ -52,10 +54,10 @@ class ComplianceReportServiceTest {
         new IssueStats("java:25", 0, 1, 10, 0)
       ));
 
-    when(activeRuleDao.getActiveRuleKeysForProject(PROJECT_ID))
+    when(activeRuleDao.getActiveRuleKeys(PROJECT_ID, PROJECT))
       .thenReturn(Set.of("java:1", "java:7", "java:13", "java:19", "java:25"));
 
-    var report = underTest.getComplianceReportForProject(PROJECT_ID, "owasp2025");
+    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, "owasp2025");
 
     assertThat(report)
       .hasEntrySatisfying("a1", (categoryStats -> {

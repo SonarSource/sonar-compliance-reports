@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import static io.sonarcloud.compliancereports.dao.AggregationType.PROJECT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -36,11 +37,11 @@ class IssueIngestionServiceTest {
       new IssueFromAnalysis("cs:100", "REVIEWED", true, 5)
     );
 
-    underTest.ingest(PROJECT_ID, issues);
+    underTest.ingest(PROJECT_ID, PROJECT, issues);
 
-    verify(dao).deleteAllIssueStatsForProject(PROJECT_ID);
+    verify(dao).deleteAllIssueStats(PROJECT_ID, PROJECT);
     ArgumentCaptor<List<IssueStats>> issuesCaptor = ArgumentCaptor.captor();
-    verify(dao).insertIssueStatsForProject(eq(PROJECT_ID), issuesCaptor.capture());
+    verify(dao).insertIssueStats(eq(PROJECT_ID), eq(PROJECT), issuesCaptor.capture());
     var capturedIssues = issuesCaptor.getValue();
 
     assertThat(capturedIssues)

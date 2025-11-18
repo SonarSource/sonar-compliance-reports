@@ -15,18 +15,18 @@ public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
   private final Map<UUID, List<IssueStats>> dataStore = new HashMap<>();
 
   @Override
-  public List<IssueStats> getIssueStatsForProject(UUID projectId) {
-    return dataStore.get(projectId);
+  public List<IssueStats> getIssueStats(UUID aggregationId, AggregationType aggregationType) {
+    return dataStore.get(aggregationId);
   }
 
   @Override
-  public void insertIssueStatsForProject(UUID projectId, List<IssueStats> issueStats) {
-    dataStore.put(projectId, issueStats);
+  public void insertIssueStats(UUID aggregationId, AggregationType aggregationType, List<IssueStats> issueStats) {
+    dataStore.put(aggregationId, issueStats);
   }
 
   @Override
-  public void deleteAllIssueStatsForProject(UUID projectId) {
-    dataStore.remove(projectId);
+  public void deleteAllIssueStats(UUID aggregationId, AggregationType aggregationType) {
+    dataStore.remove(aggregationId);
   }
 
   public Map<UUID, List<IssueStats>> getDataStore() {
