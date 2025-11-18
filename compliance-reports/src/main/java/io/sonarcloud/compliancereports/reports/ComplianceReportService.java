@@ -61,7 +61,7 @@ public class ComplianceReportService {
       }
       int hotspotRating = computeSecurityReviewRating(toReviewHotspots, reviewedHotspots);
 
-      var categoryStats = new CategoryStats(openIssues, toReviewHotspots, rating, hotspotRating, activeRules);
+      var categoryStats = new CategoryStats(openIssues, toReviewHotspots, reviewedHotspots, rating, hotspotRating, activeRules);
       report.put(bucket.key(), categoryStats);
     }
     return report;
