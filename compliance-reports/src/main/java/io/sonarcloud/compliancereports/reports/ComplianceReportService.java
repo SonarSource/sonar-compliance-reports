@@ -43,6 +43,7 @@ public class ComplianceReportService {
       int reviewedHotspots = 0;
       int rating = 1;
       int activeRules = 0;
+      Map<Integer, Integer> ratingDistribution = new HashMap<>();
 
       // For every rule in the category
       for (String ruleKey : bucket.ruleKeys()) {
@@ -54,6 +55,11 @@ public class ComplianceReportService {
         toReviewHotspots += issueStats.hotspotCount();
         reviewedHotspots += issueStats.hotspotsReviewed();
 
+        ratingDistribution.compute(
+          issueStats.rating(),
+          (k, v) -> (v == null ? 0 : v) + issueStats.issueCount()
+        );
+
         rating = Math.max(rating, issueStats.rating());
         if (activeRuleKeys.contains(ruleKey)) {
           activeRules++;
@@ -61,7 +67,16 @@ public class ComplianceReportService {
       }
       int hotspotRating = computeSecurityReviewRating(toReviewHotspots, reviewedHotspots);
 
-      var categoryStats = new CategoryStats(openIssues, toReviewHotspots, reviewedHotspots, rating, hotspotRating, activeRules);
+      var categoryStats = new CategoryStats(
+        openIssues,
+        toReviewHotspots,
+        reviewedHotspots,
+        rating,
+        ratingDistribution,
+        hotspotRating,
+        activeRules
+      );
+
       report.put(bucket.key(), categoryStats);
     }
     return report;

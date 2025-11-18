@@ -46,7 +46,8 @@ class ComplianceReportServiceTest {
       .thenReturn(List.of(
         new IssueStats("java:1", 100, 3, 0, 0),
         new IssueStats("java:7", 0, 1, 3, 7),
-        new IssueStats("java:13", 0, 1, 5, 5),
+        new IssueStats("java:11", 20, 1, 5, 5),
+        new IssueStats("java:13", 30, 2, 5, 5),
         new IssueStats("java:19", 0, 1, 7, 3),
         new IssueStats("java:25", 0, 1, 10, 0)
       ));
@@ -59,28 +60,28 @@ class ComplianceReportServiceTest {
     assertThat(report)
       .hasEntrySatisfying("a1", (categoryStats -> {
         assertThat(categoryStats)
-          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating")
-          .containsExactly(100, 3, 1, 0, 1);
+          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
+          .containsExactly(100, 3, 1, 0, 1, Map.of(3, 100));
       }))
       .hasEntrySatisfying("a2", (categoryStats -> {
         assertThat(categoryStats)
-          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating")
-          .containsExactly(0, 1, 1, 3, 2);
+          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
+          .containsExactly(0, 1, 1, 3, 2, Map.of(1, 0));
       }))
       .hasEntrySatisfying("a3", (categoryStats -> {
         assertThat(categoryStats)
-          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating")
-          .containsExactly(0, 1, 1, 5, 3);
+          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
+          .containsExactly(50, 2, 1, 10, 3, Map.of(1, 20, 2, 30));
       }))
       .hasEntrySatisfying("a4", (categoryStats -> {
         assertThat(categoryStats)
-          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating")
-          .containsExactly(0, 1, 1, 7, 4);
+          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
+          .containsExactly(0, 1, 1, 7, 4, Map.of(1, 0));
       }))
       .hasEntrySatisfying("a5", (categoryStats -> {
         assertThat(categoryStats)
-          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating")
-          .containsExactly(0, 1, 1, 10, 5);
+          .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
+          .containsExactly(0, 1, 1, 10, 5, Map.of(1, 0));
       }));
   }
 }
