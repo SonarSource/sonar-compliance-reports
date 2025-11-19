@@ -5,6 +5,11 @@
  */
 package io.sonarcloud.compliancereports.reports.metadata;
 
+import org.sonar.api.ce.ComputeEngineSide;
+import org.sonar.api.server.ServerSide;
+
+@ServerSide
+@ComputeEngineSide
 public interface MetadataType {
   String getResourceFileName();
 }

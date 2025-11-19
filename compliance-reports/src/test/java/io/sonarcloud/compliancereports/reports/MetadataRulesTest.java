@@ -27,6 +27,13 @@ class MetadataRulesTest {
   }
 
   @Test
+  void RepositoryRuleKey_parses_repo_and_key() {
+    RepositoryRuleKey repositoryRuleKey = RepositoryRuleKey.of("repo:rule");
+    assertThat(repositoryRuleKey.repository()).isEqualTo("repo");
+    assertThat(repositoryRuleKey.rule()).isEqualTo("rule");
+  }
+
+  @Test
   void getRules_returns_empty_if_category_is_unknown() {
     ComplianceCategoryRules rules = metadataRules.getRules(Map.of("testV1", "unknown"));
     assertThat(rules.repoRuleKeys()).isEmpty();

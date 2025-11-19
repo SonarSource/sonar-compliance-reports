@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
   implementation libs.jakarta.inject.api
+  implementation libs.sonar.plugin.api
   implementation mn.jsr305
   implementation mn.jackson.core
   implementation mn.jackson.databind

@@ -61,8 +61,8 @@ public class MetadataRules {
 
     public static RepositoryRuleKey of(String ruleKey) {
       int pos = ruleKey.indexOf(':');
-      String key = ruleKey.substring(0, pos);
-      String repo = ruleKey.substring(pos + 1);
+      String repo = ruleKey.substring(0, pos);
+      String key = ruleKey.substring(pos + 1);
       return new RepositoryRuleKey(repo, key);
     }
   }
