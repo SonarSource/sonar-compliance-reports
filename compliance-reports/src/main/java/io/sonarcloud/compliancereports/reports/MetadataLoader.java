@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 
 @Singleton
@@ -21,9 +22,13 @@ public class MetadataLoader {
   private static final String METADATA_RESOURCE_DIR = "metadata/";
   private final Map<String, RuleBuckets> allMetadata;
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final Yaml yaml = new Yaml();
+  private final Yaml yaml;
 
   public MetadataLoader(Set<MetadataType> metadataTypes) {
+    final var options = new LoaderOptions();
+    options.setMaxAliasesForCollections(175);
+    yaml = new Yaml(options);
+
     allMetadata = metadataTypes.stream()
       .map(metadataType -> parseMetadata(metadataType).report())
       // produce buckets for each version in the report
