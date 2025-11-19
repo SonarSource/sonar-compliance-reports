@@ -12,7 +12,6 @@ import jakarta.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -31,8 +30,7 @@ public class IssueIngestionService {
 
   public void ingest(String aggregationId, AggregationType aggregationType, List<IssueFromAnalysis> issueData) {
     List<IssueStats> issueStats = calculateIssueStats(issueData);
-    issueStatsByRuleKeyDao.deleteAllIssueStats(aggregationId, aggregationType);
-    issueStatsByRuleKeyDao.insertIssueStats(aggregationId, aggregationType, issueStats);
+    issueStatsByRuleKeyDao.deleteAndInsertIssueStats(aggregationId, aggregationType, issueStats);
   }
 
   private List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {

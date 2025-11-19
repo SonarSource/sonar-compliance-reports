@@ -38,10 +38,9 @@ class IssueIngestionServiceTest {
     );
 
     underTest.ingest(PROJECT_ID, PROJECT, issues);
-
-    verify(dao).deleteAllIssueStats(PROJECT_ID, PROJECT);
     ArgumentCaptor<List<IssueStats>> issuesCaptor = ArgumentCaptor.captor();
-    verify(dao).insertIssueStats(eq(PROJECT_ID), eq(PROJECT), issuesCaptor.capture());
+
+    verify(dao).deleteAndInsertIssueStats(eq(PROJECT_ID), eq(PROJECT), issuesCaptor.capture());
     var capturedIssues = issuesCaptor.getValue();
 
     assertThat(capturedIssues)

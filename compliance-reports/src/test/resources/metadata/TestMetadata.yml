@@ -6,7 +6,7 @@ report:
       categories:
         - name: category1
           rules:
-            - 1
+            - java:S001
             - 2
             - 3
         - name: category2

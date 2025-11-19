@@ -8,7 +8,6 @@ package io.sonarcloud.compliancereports.dao;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
 
@@ -20,13 +19,9 @@ public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
   }
 
   @Override
-  public void insertIssueStats(String aggregationId, AggregationType aggregationType, List<IssueStats> issueStats) {
-    dataStore.put(aggregationId, issueStats);
-  }
-
-  @Override
-  public void deleteAllIssueStats(String aggregationId, AggregationType aggregationType) {
+  public void deleteAndInsertIssueStats(String aggregationId, AggregationType aggregationType, List<IssueStats> issueStats) {
     dataStore.remove(aggregationId);
+    dataStore.put(aggregationId, issueStats);
   }
 
   public Map<String, List<IssueStats>> getDataStore() {
