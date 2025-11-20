@@ -22,16 +22,16 @@ class RuleBucketsTest {
       null,
       null,
       List.of(
-        new ReportMetadataSchema.Report.Category("cat1", null, null, null, Set.of("a", "b", "c"), List.of(
-          new ReportMetadataSchema.Report.Category("cat1.1", null, null, null, Set.of("d", "e", "f"), null, List.of(
-            new ReportMetadataSchema.Report.Category("cat1.1.1", null, null, null, Set.of("g", "h", "i"), null, null),
-            new ReportMetadataSchema.Report.Category("cat1.1.2", null, null, null, Set.of("j", "k", "l"), null, null)
+        new ReportMetadataSchema.Report.Category("cat1", null, null, null, null, Set.of("a", "b", "c"), List.of(
+          new ReportMetadataSchema.Report.Category("cat1.1", null, null, null, null, Set.of("d", "e", "f"), null, List.of(
+            new ReportMetadataSchema.Report.Category("cat1.1.1", null, null, null, null, Set.of("g", "h", "i"), null, null),
+            new ReportMetadataSchema.Report.Category("cat1.1.2", null, null, null, null, Set.of("j", "k", "l"), null, null)
           ))), null),
-        new ReportMetadataSchema.Report.Category("cat2", null, null, null, Set.of("a", "b", "c"), List.of(
-          new ReportMetadataSchema.Report.Category("cat2.1", null, null, null, Set.of("d", "e", "f"), null, List.of(
-            new ReportMetadataSchema.Report.Category("cat2.1.1", null, null, null, Set.of("g", "h", "i"), null, null))),
-          new ReportMetadataSchema.Report.Category("cat2.2", null, null, null, Set.of("d", "e", "f"), null, List.of(
-            new ReportMetadataSchema.Report.Category("cat2.2.1", null, null, null, Set.of("g", "h", "i"), null, null)
+        new ReportMetadataSchema.Report.Category("cat2", null, null, null, null, Set.of("a", "b", "c"), List.of(
+          new ReportMetadataSchema.Report.Category("cat2.1", null, null, null, null, Set.of("d", "e", "f"), null, List.of(
+            new ReportMetadataSchema.Report.Category("cat2.1.1", null, null, null, null, Set.of("g", "h", "i"), null, null))),
+          new ReportMetadataSchema.Report.Category("cat2.2", null, null, null, null, Set.of("d", "e", "f"), null, List.of(
+            new ReportMetadataSchema.Report.Category("cat2.2.1", null, null, null, null, Set.of("g", "h", "i"), null, null)
           ))), null)
       )
     );

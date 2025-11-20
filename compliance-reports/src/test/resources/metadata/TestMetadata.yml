@@ -7,15 +7,15 @@ report:
         - name: category1
           rules:
             - java:S001
-            - 2
-            - 3
+            - :2
+            - :3
         - name: category2
           rules:
-            - 1
-            - 2
-            - 3
+            - :1
+            - :2
+            - :3
         - name: category3
           rules:
-            - 1
-            - 2
-            - 3
+            - :1
+            - :2
+            - :3

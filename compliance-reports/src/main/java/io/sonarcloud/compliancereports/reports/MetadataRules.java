@@ -41,10 +41,12 @@ public class MetadataRules {
         .findFirst()
         .ifPresent(ruleBucket -> {
           for (String ruleKey : ruleBucket.ruleKeys()) {
-            if (ruleKey.contains(":")) {
+            if (!ruleKey.startsWith(":")) {
+              // repo:rule
               repoRuleKeys.add(RepositoryRuleKey.of(ruleKey));
             } else {
-              ruleKeys.add(ruleKey);
+              // :rule wildcard
+              ruleKeys.add(ruleKey.substring(ruleKey.indexOf(":") + 1));
             }
           }
         });

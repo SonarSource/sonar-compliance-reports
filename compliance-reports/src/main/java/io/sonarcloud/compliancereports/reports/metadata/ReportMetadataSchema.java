@@ -63,6 +63,7 @@ public record ReportMetadataSchema(Report report) {
     public record Category(
       String name,
       @Nullable String description,
+      @Nullable String key,
       @Nullable String level,
       @Nullable List<ReportUrl> urls,
       @Nullable Set<String> rules,
