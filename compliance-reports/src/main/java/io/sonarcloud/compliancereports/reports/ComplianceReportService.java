@@ -30,7 +30,7 @@ public class ComplianceReportService {
     this.metadataLoader = metadataLoader;
   }
 
-  public Map<String, CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, String standard) {
+  public Map<String, CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard) {
     RuleBuckets ruleKeysByCategory = metadataLoader.getAllMetadata().get(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     Map<String, IssueStats> issueStatsByRuleKey = loadIssueStats(aggregationId, aggregationType);

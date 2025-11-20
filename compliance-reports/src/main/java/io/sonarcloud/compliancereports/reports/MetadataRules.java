@@ -20,17 +20,17 @@ public class MetadataRules {
   }
 
   @CheckForNull
-  public ComplianceCategoryRules getRules(@Nullable Map<String, String> categoriesByStandard) {
+  public ComplianceCategoryRules getRules(@Nullable Map<ReportKey, String> categoriesByStandard) {
     if (categoriesByStandard == null) {
       return null;
     }
 
-    Map<String, RuleBuckets> metadata = metadataLoader.getAllMetadata();
+    Map<ReportKey, RuleBuckets> metadata = metadataLoader.getAllMetadata();
 
     Set<RepositoryRuleKey> repoRuleKeys = new HashSet<>();
     Set<String> ruleKeys = new HashSet<>();
 
-    for (Map.Entry<String, String> e : categoriesByStandard.entrySet()) {
+    for (Map.Entry<ReportKey, String> e : categoriesByStandard.entrySet()) {
       RuleBuckets ruleBuckets = metadata.get(e.getKey());
       if (ruleBuckets == null) {
         continue;

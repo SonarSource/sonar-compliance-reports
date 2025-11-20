@@ -5,6 +5,7 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.sonarcloud.compliancereports.reports.metadata.MetadataType;
 import io.sonarcloud.compliancereports.reports.metadata.ReportMetadataSchema;
@@ -20,8 +21,9 @@ import org.yaml.snakeyaml.Yaml;
 public class MetadataLoader {
 
   private static final String METADATA_RESOURCE_DIR = "metadata/";
-  private final Map<String, RuleBuckets> allMetadata;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final Map<ReportKey, RuleBuckets> allMetadata;
+  private final ObjectMapper objectMapper = new ObjectMapper()
+      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   private final Yaml yaml;
 
   public MetadataLoader(Set<MetadataType> metadataTypes) {
@@ -49,7 +51,7 @@ public class MetadataLoader {
     }
   }
 
-  public Map<String, RuleBuckets> getAllMetadata() {
+  public Map<ReportKey, RuleBuckets> getAllMetadata() {
     return allMetadata;
   }
 }

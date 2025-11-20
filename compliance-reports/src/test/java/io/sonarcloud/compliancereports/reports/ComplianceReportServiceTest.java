@@ -42,7 +42,7 @@ class ComplianceReportServiceTest {
       ));
 
     when(metadataLoader.getAllMetadata())
-      .thenReturn(Map.of("owasp2025", ruleBuckets));
+      .thenReturn(Map.of(new ReportKey("owasp", "2025"), ruleBuckets));
 
     when(issueStatsByRuleKeyDao.getIssueStats(PROJECT_ID, PROJECT))
       .thenReturn(List.of(
@@ -57,7 +57,7 @@ class ComplianceReportServiceTest {
     when(activeRuleDao.getActiveRuleKeys(PROJECT_ID, PROJECT))
       .thenReturn(Set.of("java:1", "java:7", "java:13", "java:19", "java:25"));
 
-    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, "owasp2025");
+    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, new ReportKey("owasp", "2025"));
 
     assertThat(report)
       .hasEntrySatisfying("a1", (categoryStats -> {

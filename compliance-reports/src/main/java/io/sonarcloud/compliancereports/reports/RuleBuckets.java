@@ -11,13 +11,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RuleBuckets {
-  private final String key;
+  private final ReportKey key;
   private final Set<RuleBucket> buckets;
 
   public record RuleBucket(String key, Set<String> ruleKeys) {}
 
-  public RuleBuckets(String reportKey, ReportMetadataSchema.Report.Version version) {
-    key = reportKey + version.key();
+  public RuleBuckets(String standardKey, ReportMetadataSchema.Report.Version version) {
+    key = new ReportKey(standardKey, version.key());
 
     if (version.categories() != null) {
       buckets = version.categories().stream()
@@ -34,7 +34,7 @@ public class RuleBuckets {
     return buckets;
   }
 
-  public String getKey() {
+  public ReportKey getKey() {
     return key;
   }
 }

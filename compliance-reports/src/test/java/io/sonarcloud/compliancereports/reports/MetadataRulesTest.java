@@ -7,7 +7,6 @@ package io.sonarcloud.compliancereports.reports;
 
 import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
 import io.sonarcloud.compliancereports.reports.MetadataRules.RepositoryRuleKey;
-import io.sonarcloud.compliancereports.reports.metadata.MetadataType;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,7 @@ class MetadataRulesTest {
 
   @Test
   void getRules_returns_rules_and_wildcards() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of("testV1", "category1"));
+    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), "category1"));
     assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
     assertThat(rules.ruleKeys()).containsOnly("2", "3");
   }
@@ -35,7 +34,7 @@ class MetadataRulesTest {
 
   @Test
   void getRules_returns_empty_if_category_is_unknown() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of("testV1", "unknown"));
+    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), "unknown"));
     assertThat(rules.repoRuleKeys()).isEmpty();
     assertThat(rules.ruleKeys()).isEmpty();
   }

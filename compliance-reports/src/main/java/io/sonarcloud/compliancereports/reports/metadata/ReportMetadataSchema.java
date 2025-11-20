@@ -13,7 +13,6 @@ public record ReportMetadataSchema(Report report) {
 
   public record Report(
     String name,
-    // Assuming "key" will be present in the schema
     String key,
     @Nullable String description,
     @Nullable ReportClassification classification,
@@ -53,7 +52,6 @@ public record ReportMetadataSchema(Report report) {
 
     public record Version(
       String name,
-      // Assuming "key" will be present in the schema
       String key,
       @Nullable String description,
       @Nullable List<ReportUrl> urls,
