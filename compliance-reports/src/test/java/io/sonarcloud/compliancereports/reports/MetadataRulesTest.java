@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
+import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MetadataRulesTest {
@@ -40,8 +41,18 @@ class MetadataRulesTest {
   }
 
   @Test
-  void getRules_returns_null_if_map_is_null() {
-    assertThat(metadataRules.getRules(null)).isNull();
+  void getRules_for_single_standard() {
+    ComplianceCategoryRules rules = metadataRules.getRules(new ReportKey("test", "V1"), "category1");
+    assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.ruleKeys()).containsOnly("2", "3");
   }
 
+  @Test
+  void getRuleCountByStandardCategory_return_count() {
+    Map<String, Long> countByRuleKey = Map.of("java:S001", 2L, "php:S001", 3L, "js:1", 4L, "php:1", 2L);
+    Map<String, Long> countByCategory = metadataRules.getRuleCountByStandardCategory(new ReportKey("test", "V1"), countByRuleKey);
+    assertThat(countByCategory).containsOnly(
+      entry("category1", 2L), entry("category2", 6L), entry("category3", 6L)
+    );
+  }
 }
