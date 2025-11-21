@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Singleton
 public class ComplianceReportService {
@@ -34,51 +35,63 @@ public class ComplianceReportService {
     RuleBuckets ruleKeysByCategory = metadataLoader.getAllMetadata().get(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     Map<String, IssueStats> issueStatsByRuleKey = loadIssueStats(aggregationId, aggregationType);
+    var issueStatsByRuleKeyAsWildcards = getIssueStatsByWildcard(issueStatsByRuleKey);
     Map<String, CategoryStats> report = new HashMap<>();
 
     for (RuleBuckets.RuleBucket bucket : ruleKeysByCategory.getBuckets()) {
-      int openIssues = 0;
-      int toReviewHotspots = 0;
-      int reviewedHotspots = 0;
-      int rating = 1;
-      int activeRules = 0;
-      Map<Integer, Integer> ratingDistribution = new HashMap<>();
+      Set<String> withoutRedundantConcreteKeys = getDeDupedRuleKeys(bucket);
+      AggregateCategoryStats aggregate = aggregateStatsForCategory(issueStatsByRuleKey, activeRuleKeys, withoutRedundantConcreteKeys, issueStatsByRuleKeyAsWildcards);
 
-      // For every rule in the category
-      for (String ruleKey : bucket.ruleKeys()) {
-        IssueStats issueStats = issueStatsByRuleKey.get(ruleKey);
-        if (issueStats == null) {
-          continue;
-        }
-        openIssues += issueStats.issueCount();
-        toReviewHotspots += issueStats.hotspotCount();
-        reviewedHotspots += issueStats.hotspotsReviewed();
-
-        ratingDistribution.compute(
-          issueStats.rating(),
-          (k, v) -> (v == null ? 0 : v) + issueStats.issueCount()
-        );
-
-        rating = Math.max(rating, issueStats.rating());
-        if (activeRuleKeys.contains(ruleKey)) {
-          activeRules++;
-        }
-      }
-      int hotspotRating = computeSecurityReviewRating(toReviewHotspots, reviewedHotspots);
-
-      var categoryStats = new CategoryStats(
-        openIssues,
-        toReviewHotspots,
-        reviewedHotspots,
-        rating,
-        ratingDistribution,
-        hotspotRating,
-        activeRules
-      );
-
-      report.put(bucket.key(), categoryStats);
+      int hotspotRating = computeSecurityReviewRating(aggregate.getToReviewHotspots(), aggregate.getReviewedHotspots());
+      report.put(bucket.key(), aggregate.toImmutable(hotspotRating));
     }
     return report;
+  }
+
+  private static Map<String, Set<IssueStats>> getIssueStatsByWildcard(Map<String, IssueStats> issueStatsByRuleKey) {
+    return issueStatsByRuleKey.keySet().stream()
+      .collect(Collectors.toMap(
+        ComplianceReportService::getRuleKeyWithColonPrefix,
+        key -> Set.of(issueStatsByRuleKey.get(key)),
+        (set1, set2) -> {
+          Set<IssueStats> merged = Set.copyOf(set1);
+          merged = Set.copyOf(Stream.concat(merged.stream(), set2.stream()).collect(Collectors.toSet()));
+          return merged;
+        }
+      ));
+  }
+
+  private static AggregateCategoryStats aggregateStatsForCategory(Map<String, IssueStats> issueStatsByRuleKey, Set<String> activeRuleKeys,
+    Set<String> ruleKeysInCategory, Map<String, Set<IssueStats>> issueStatsByRuleKeyAsWildcards) {
+    AggregateCategoryStats aggregate = new AggregateCategoryStats();
+    // For every rule in the category
+    for (String ruleKey : ruleKeysInCategory) {
+      Set<IssueStats> matchingIssueStats = getMatchingIssueStats(issueStatsByRuleKey, ruleKey, issueStatsByRuleKeyAsWildcards);
+      for (IssueStats issueStats : matchingIssueStats) {
+
+        aggregateIssueStats(issueStats, aggregate);
+
+        if (activeRuleKeys.contains(issueStats.ruleKey())) {
+          aggregate.incrementActiveRules();
+        }
+      }
+    }
+    return aggregate;
+  }
+
+  private static Set<IssueStats> getMatchingIssueStats(Map<String, IssueStats> issueStatsByRuleKey, String ruleKey, Map<String, Set<IssueStats>> issueStatsByRuleKeyAsWildcards) {
+    if (isWildcardRuleKey(ruleKey)) {
+      return issueStatsByRuleKeyAsWildcards.get(ruleKey);
+    }
+    return issueStatsByRuleKey.get(ruleKey) == null ? Set.of() : Set.of(issueStatsByRuleKey.get(ruleKey));
+  }
+
+  private static void aggregateIssueStats(IssueStats issueStats, AggregateCategoryStats aggregate) {
+    aggregate.addOpenIssues(issueStats.issueCount());
+    aggregate.addToReviewHotspots(issueStats.hotspotCount());
+    aggregate.addReviewedHotspots(issueStats.hotspotsReviewed());
+    aggregate.addToRatingDistribution(issueStats.rating(), issueStats.issueCount());
+    aggregate.updateRating(issueStats.rating());
   }
 
   private Map<String, IssueStats> loadIssueStats(String aggregationId, AggregationType aggregationType) {
@@ -105,4 +118,23 @@ public class ComplianceReportService {
     return 5;
   }
 
+  private static String getRuleKeyWithColonPrefix(String key) {
+    return key.substring(key.indexOf(":"));
+  }
+
+  /**
+   * Return a set of rule keys where concrete rule keys are deduped if a wildcard rule key exists in the same category.
+   * E.g. if both ":S1" and "java:S1" exist in the same category, only ":S1" will be kept.
+   */
+  private static Set<String> getDeDupedRuleKeys(RuleBuckets.RuleBucket bucket) {
+    Set<String> wildcardRuleKeysInCategory = bucket.ruleKeys().stream()
+      .filter(ComplianceReportService::isWildcardRuleKey)
+      .collect(Collectors.toSet());
+    return bucket.ruleKeys().stream().filter(rk -> isWildcardRuleKey(rk) || !wildcardRuleKeysInCategory.contains(getRuleKeyWithColonPrefix(rk)))
+      .collect(Collectors.toSet());
+  }
+
+  private static boolean isWildcardRuleKey(String ruleKey) {
+    return ruleKey.startsWith(":");
+  }
 }
