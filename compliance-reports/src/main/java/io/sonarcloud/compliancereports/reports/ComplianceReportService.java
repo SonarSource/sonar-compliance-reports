@@ -81,7 +81,7 @@ public class ComplianceReportService {
 
   private static Set<IssueStats> getMatchingIssueStats(Map<String, IssueStats> issueStatsByRuleKey, String ruleKey, Map<String, Set<IssueStats>> issueStatsByRuleKeyAsWildcards) {
     if (isWildcardRuleKey(ruleKey)) {
-      return issueStatsByRuleKeyAsWildcards.get(ruleKey);
+      return issueStatsByRuleKeyAsWildcards.get(ruleKey) == null ? Set.of() : issueStatsByRuleKeyAsWildcards.get(ruleKey);
     }
     return issueStatsByRuleKey.get(ruleKey) == null ? Set.of() : Set.of(issueStatsByRuleKey.get(ruleKey));
   }

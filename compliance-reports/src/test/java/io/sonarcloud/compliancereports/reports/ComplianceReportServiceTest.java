@@ -100,6 +100,20 @@ class ComplianceReportServiceTest {
       .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 100, 3, 1, 0, 1, Map.of(3, 100)));
   }
 
+  @Test
+  void whenGetComplianceReport_shouldHandleMultipleColonsInIssueStatsRuleKeys() {
+    setupMetadata(Set.of(new RuleBucket("a1", Set.of(":S1", "java:security:S1"))));
+
+    setupIssueStats(List.of(new IssueStats("java:security:S1", 100, 3, 0, 0)));
+
+    setupActiveRules(Set.of("java:security:S1"));
+
+    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
+
+    assertThat(report)
+      .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 100, 3, 1, 0, 1, Map.of(3, 100)));
+  }
+
   private void setupMetadata(Set<RuleBucket> buckets) {
     when(ruleBuckets.getBuckets()).thenReturn(buckets);
     when(metadataLoader.getAllMetadata()).thenReturn(Map.of(REPORT_KEY, ruleBuckets));
