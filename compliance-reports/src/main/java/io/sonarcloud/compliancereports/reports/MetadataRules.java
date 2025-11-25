@@ -72,8 +72,8 @@ public class MetadataRules {
     return new ComplianceCategoryRules(repoRuleKeys, ruleKeys);
   }
 
-  public ComplianceCategoryRules getRules(ReportKey standard, String category) {
-    return getRules(Map.of(standard, List.of(category)));
+  public ComplianceCategoryRules getRules(ReportKey standard, Collection<String> categories) {
+    return getRules(Map.of(standard, categories));
   }
 
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
@@ -96,11 +96,12 @@ public class MetadataRules {
   /**
    * Exclude rule keys that are being filtered out by filters on other compliance standards
    */
-  public Set<String> applyComplianceFiltersToFacet(Set<String> ruleKeys, ReportKey reportKey, @Nullable Map<ReportKey, String> filters) {
+  public Set<String> applyComplianceFiltersToFacet(Set<String> ruleKeys, ReportKey reportKey,
+    @Nullable Map<ReportKey, Collection<String>> filters) {
     if (filters == null) {
       return ruleKeys;
     }
-    Map<ReportKey, String> activeFilters = filters.entrySet().stream()
+    Map<ReportKey, Collection<String>> activeFilters = filters.entrySet().stream()
       .filter(f -> !f.getKey().equals(reportKey))
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -109,8 +110,8 @@ public class MetadataRules {
       .collect(Collectors.toSet());
   }
 
-  public boolean filtersIncludeRule(Map<ReportKey, String> filters, String ruleKey) {
-    for (Map.Entry<ReportKey, String> filter : filters.entrySet()) {
+  public boolean filtersIncludeRule(Map<ReportKey, Collection<String>> filters, String ruleKey) {
+    for (Map.Entry<ReportKey, Collection<String>> filter : filters.entrySet()) {
       ComplianceCategoryRules categoryRules = getRules(filter.getKey(), filter.getValue());
       if (!categoryRules.contains(ruleKey)) {
         return false;

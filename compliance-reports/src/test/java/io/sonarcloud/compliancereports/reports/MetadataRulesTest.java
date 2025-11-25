@@ -7,6 +7,8 @@ package io.sonarcloud.compliancereports.reports;
 
 import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
 import io.sonarcloud.compliancereports.reports.MetadataRules.RepositoryRuleKey;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -50,7 +52,7 @@ class MetadataRulesTest {
 
   @Test
   void getRules_for_single_standard() {
-    ComplianceCategoryRules rules = metadataRules.getRules(new ReportKey("test", "V1"), "category1");
+    ComplianceCategoryRules rules = metadataRules.getRules(new ReportKey("test", "V1"), List.of("category1"));
     assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
     assertThat(rules.ruleKeys()).containsOnly("2", "3");
   }
@@ -69,14 +71,15 @@ class MetadataRulesTest {
     ReportKey reportKey1 = new ReportKey("test", "V1");
     ReportKey reportKey2 = new ReportKey("test", "V2");
 
-    Set<String> ruleKeys = Set.of("java:S001", "java:2");
+    Set<String> ruleKeys = Set.of("java:S001", "java:2", "java:3");
 
-    // filter on reportKey1 should have no effect
-    Map<ReportKey, String> filters = Map.of(
-      reportKey2, "cat1",
-      reportKey1, "category2"
+    Map<ReportKey, Collection<String>> filters = Map.of(
+      // filter based on all categories
+      reportKey2, Set.of("cat1", "cat2"),
+      // filter on reportKey1 should have no effect
+      reportKey1, Set.of("category2")
     );
     Set<String> filteredRuleKeys = metadataRules.applyComplianceFiltersToFacet(ruleKeys, reportKey1, filters);
-    assertThat(filteredRuleKeys).containsOnly("java:S001");
+    assertThat(filteredRuleKeys).containsOnly("java:S001", "java:3");
   }
 }
