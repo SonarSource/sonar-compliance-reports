@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.sonar.api.rule.RuleKey;
 
 public class MetadataRules {
   private final MetadataLoader metadataLoader;
@@ -78,21 +77,17 @@ public class MetadataRules {
   }
 
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
-    RuleBuckets standardMetadata = metadataLoader.getAllMetadata().get(standard);
-    Map<String, Long> wildcardCountByRuleKey = countByRuleKey.entrySet().stream().collect(Collectors.toMap(
-      entry -> RuleKey.parse(entry.getKey()).rule(), Map.Entry::getValue, Long::sum));
+    Map<String, ComplianceCategoryRules> rulesByCategory = getRules(standard);
     Map<String, Long> ruleCountByCategory = new HashMap<>();
 
-    for (RuleBuckets.RuleBucket ruleBucket : standardMetadata.getBuckets()) {
+    for (Map.Entry<String, ComplianceCategoryRules> categoryEntry : rulesByCategory.entrySet()) {
       long sum = 0L;
-      for (String ruleKey : ruleBucket.ruleKeys()) {
-        if (ruleKey.startsWith(":")) {
-          sum += wildcardCountByRuleKey.getOrDefault(ruleKey.substring(1), 0L);
-        } else {
-          sum += countByRuleKey.getOrDefault(ruleKey, 0L);
+      for (Map.Entry<String, Long> countEntry : countByRuleKey.entrySet()) {
+        if (categoryEntry.getValue().contains(countEntry.getKey())) {
+          sum += countEntry.getValue();
         }
       }
-      ruleCountByCategory.put(ruleBucket.key(), sum);
+      ruleCountByCategory.put(categoryEntry.getKey(), sum);
     }
 
     return ruleCountByCategory;
