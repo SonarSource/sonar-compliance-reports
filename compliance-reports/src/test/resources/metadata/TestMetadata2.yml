@@ -1,0 +1,9 @@
+report:
+  key: test
+  versions:
+    - name: 1
+      key: V2
+      categories:
+        - name: cat1
+          rules:
+            - java:S001

@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sonar.api.rule.RuleKey;
 
 public class MetadataRules {
@@ -55,6 +56,11 @@ public class MetadataRules {
     return getRules(Map.of(standard, category));
   }
 
+  public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Set<String> ruleKeys) {
+    Map<String, Long> countByRuleKey = ruleKeys.stream().collect(Collectors.toMap(e -> e, e -> 1L));
+    return getRuleCountByStandardCategory(standard, ruleKeys);
+  }
+
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
     RuleBuckets standardMetadata = metadataLoader.getAllMetadata().get(standard);
     Map<String, Long> wildcardCountByRuleKey = countByRuleKey.entrySet().stream().collect(Collectors.toMap(
@@ -74,6 +80,33 @@ public class MetadataRules {
     }
 
     return ruleCountByCategory;
+  }
+
+  /**
+   * Exclude rule keys that are being filtered out by filters on other compliance standards
+   */
+  public Set<String> applyComplianceFiltersToFacet(Set<String> ruleKeys, ReportKey reportKey, @Nullable Map<ReportKey, String> filters) {
+    if (filters == null) {
+      return ruleKeys;
+    }
+    Map<ReportKey, String> activeFilters = filters.entrySet().stream()
+      .filter(f -> !f.getKey().equals(reportKey))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    return ruleKeys.stream()
+      .filter(ruleKey -> filtersIncludeRule(activeFilters, ruleKey))
+      .collect(Collectors.toSet());
+  }
+
+  public boolean filtersIncludeRule(Map<ReportKey, String> filters, String ruleKey) {
+    for (Map.Entry<ReportKey, String> filter : filters.entrySet()) {
+      MetadataRules.ComplianceCategoryRules categoryRules = getRules(filter.getKey(), filter.getValue());
+      MetadataRules.RepositoryRuleKey repoRuleKey = MetadataRules.RepositoryRuleKey.of(ruleKey);
+      if (!categoryRules.ruleKeys().contains(repoRuleKey.rule()) && !categoryRules.repoRuleKeys().contains(repoRuleKey)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public record RepositoryRuleKey(String repository, String rule) {

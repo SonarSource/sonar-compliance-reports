@@ -15,7 +15,8 @@ import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MetadataRulesTest {
-  private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(() -> "TestMetadata.yml"));
+  private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(
+    () -> "TestMetadata.yml", () -> "TestMetadata2.yml"));
   private final MetadataRules metadataRules = new MetadataRules(metaDataLoader);
 
 
@@ -54,5 +55,21 @@ class MetadataRulesTest {
     assertThat(countByCategory).containsOnly(
       entry("category1", 2L), entry("category2", 6L), entry("category3", 6L)
     );
+  }
+
+  @Test
+  void applyComplianceFiltersToFacet_applies_other_filters() {
+    ReportKey reportKey1 = new ReportKey("test", "V1");
+    ReportKey reportKey2 = new ReportKey("test", "V2");
+
+    Set<String> ruleKeys = Set.of("java:S001", "java:2");
+
+    // filter on reportKey1 should have no effect
+    Map<ReportKey, String> filters = Map.of(
+      reportKey2, "cat1",
+      reportKey1, "category2"
+    );
+    Set<String> filteredRuleKeys = metadataRules.applyComplianceFiltersToFacet(ruleKeys, reportKey1, filters);
+    assertThat(filteredRuleKeys).containsOnly("java:S001");
   }
 }

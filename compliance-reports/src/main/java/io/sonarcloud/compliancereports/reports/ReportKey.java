@@ -6,4 +6,16 @@
 package io.sonarcloud.compliancereports.reports;
 
 public record ReportKey(String standard, String version) {
+  @Override
+  public String toString() {
+    return standard + ":" + version;
+  }
+
+  static ReportKey parse(String reportKey) {
+    int i = reportKey.indexOf(':');
+    if (i < 0) {
+      throw new IllegalStateException("Invalid format: " + reportKey);
+    }
+    return new ReportKey(reportKey.substring(0, i), reportKey.substring(i + 1));
+  }
 }
