@@ -28,9 +28,10 @@ class ComplianceReportServiceTest {
   private final IssueStatsByRuleKeyDao issueStatsByRuleKeyDao = mock();
   private final ActiveRuleDao activeRuleDao = mock();
   private final MetadataLoader metadataLoader = mock();
+  private final MetadataRules metadataRules = new MetadataRules(metadataLoader);
   private final RuleBuckets ruleBuckets = mock();
 
-  private final ComplianceReportService underTest = new ComplianceReportService(issueStatsByRuleKeyDao, activeRuleDao, metadataLoader);
+  private final ComplianceReportService underTest = new ComplianceReportService(issueStatsByRuleKeyDao, activeRuleDao, metadataRules);
 
   @Test
   void whenGetComplianceReport_shouldReturnReportWithCorrectData() {

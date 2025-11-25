@@ -21,6 +21,27 @@ public class MetadataRules {
     this.metadataLoader = metadataLoader;
   }
 
+  public Map<String, ComplianceCategoryRules> getRules(ReportKey standard) {
+    Map<String, ComplianceCategoryRules> rulesPerCategory = new HashMap<>();
+
+    for (RuleBuckets.RuleBucket ruleBucket : metadataLoader.getAllMetadata().get(standard).getBuckets()) {
+      Set<RepositoryRuleKey> repoRuleKeys = new HashSet<>();
+      Set<String> ruleKeys = new HashSet<>();
+
+      for (String ruleKey : ruleBucket.ruleKeys()) {
+        if (!ruleKey.startsWith(":")) {
+          // repo:rule
+          repoRuleKeys.add(RepositoryRuleKey.of(ruleKey));
+        } else {
+          // :rule wildcard
+          ruleKeys.add(ruleKey.substring(ruleKey.indexOf(":") + 1));
+        }
+      }
+      rulesPerCategory.put(ruleBucket.key(), new ComplianceCategoryRules(repoRuleKeys, ruleKeys));
+    }
+    return rulesPerCategory;
+  }
+
   public ComplianceCategoryRules getRules(Map<ReportKey, String> categoriesByStandard) {
     Map<ReportKey, RuleBuckets> metadata = metadataLoader.getAllMetadata();
 
@@ -54,11 +75,6 @@ public class MetadataRules {
 
   public ComplianceCategoryRules getRules(ReportKey standard, String category) {
     return getRules(Map.of(standard, category));
-  }
-
-  public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Set<String> ruleKeys) {
-    Map<String, Long> countByRuleKey = ruleKeys.stream().collect(Collectors.toMap(e -> e, e -> 1L));
-    return getRuleCountByStandardCategory(standard, ruleKeys);
   }
 
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
