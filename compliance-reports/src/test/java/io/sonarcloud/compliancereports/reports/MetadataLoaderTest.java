@@ -44,5 +44,14 @@ class MetadataLoaderTest {
           assertThat(buckets.getBuckets()).hasSize(3);
         });
     }
+
+    @Test
+    void shouldReturnStandardNames() {
+      MetadataType metadataType = () -> "TestMetadata.yml";
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(metadataType));
+      Set<String> standardNames = metaDataLoader.getAllReportsAsStrings();
+
+      assertThat(standardNames).containsOnly("test:V1");
+    }
   }
 }

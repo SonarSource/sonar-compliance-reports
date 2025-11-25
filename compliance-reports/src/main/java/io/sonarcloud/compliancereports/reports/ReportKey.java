@@ -11,7 +11,7 @@ public record ReportKey(String standard, String version) {
     return standard + ":" + version;
   }
 
-  static ReportKey parse(String reportKey) {
+  public static ReportKey parse(String reportKey) {
     int i = reportKey.indexOf(':');
     if (i < 0) {
       throw new IllegalStateException("Invalid format: " + reportKey);

@@ -54,4 +54,8 @@ public class MetadataLoader {
   public Map<ReportKey, RuleBuckets> getAllMetadata() {
     return allMetadata;
   }
+
+  public Set<String> getAllReportsAsStrings() {
+    return allMetadata.keySet().stream().map(ReportKey::toString).collect(Collectors.toSet());
+  }
 }
