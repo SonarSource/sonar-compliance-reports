@@ -22,9 +22,16 @@ class MetadataRulesTest {
 
   @Test
   void getRules_returns_rules_and_wildcards() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), "category1"));
+    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("category1")));
     assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
     assertThat(rules.ruleKeys()).containsOnly("2", "3");
+  }
+
+  @Test
+  void getRules_returns_rules_and_wildcards_for_multiple_categories() {
+    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("category1", "category2")));
+    assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.ruleKeys()).containsOnly("1", "2", "3");
   }
 
   @Test
@@ -36,7 +43,7 @@ class MetadataRulesTest {
 
   @Test
   void getRules_returns_empty_if_category_is_unknown() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), "unknown"));
+    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("unknown")));
     assertThat(rules.repoRuleKeys()).isEmpty();
     assertThat(rules.ruleKeys()).isEmpty();
   }

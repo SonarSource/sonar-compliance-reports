@@ -8,6 +8,7 @@ package io.sonarcloud.compliancereports.reports;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,22 +42,21 @@ public class MetadataRules {
     return rulesPerCategory;
   }
 
-  public ComplianceCategoryRules getRules(Map<ReportKey, String> categoriesByStandard) {
+  public ComplianceCategoryRules getRules(Map<ReportKey, Collection<String>> categoriesByStandard) {
     Map<ReportKey, RuleBuckets> metadata = metadataLoader.getAllMetadata();
 
     Set<RepositoryRuleKey> repoRuleKeys = new HashSet<>();
     Set<String> ruleKeys = new HashSet<>();
 
-    for (Map.Entry<ReportKey, String> e : categoriesByStandard.entrySet()) {
+    for (Map.Entry<ReportKey, Collection<String>> e : categoriesByStandard.entrySet()) {
       RuleBuckets ruleBuckets = metadata.get(e.getKey());
       if (ruleBuckets == null) {
         throw new IllegalStateException("Unknown standard: " + e.getKey());
       }
       ruleBuckets.getBuckets()
         .stream()
-        .filter(b -> b.key().equals(e.getValue()))
-        .findFirst()
-        .ifPresent(ruleBucket -> {
+        .filter(ruleBucket -> e.getValue().contains(ruleBucket.key()))
+        .forEach(ruleBucket -> {
           for (String ruleKey : ruleBucket.ruleKeys()) {
             if (!ruleKey.startsWith(":")) {
               // repo:rule
@@ -73,7 +73,7 @@ public class MetadataRules {
   }
 
   public ComplianceCategoryRules getRules(ReportKey standard, String category) {
-    return getRules(Map.of(standard, category));
+    return getRules(Map.of(standard, List.of(category)));
   }
 
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
