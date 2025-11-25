@@ -7,6 +7,7 @@
 package io.sonarcloud.compliancereports.dao;
 
 public enum AggregationType {
+  APPLICATION,
   PROJECT,
   PORTFOLIO
 }
