@@ -116,9 +116,8 @@ public class MetadataRules {
 
   public boolean filtersIncludeRule(Map<ReportKey, String> filters, String ruleKey) {
     for (Map.Entry<ReportKey, String> filter : filters.entrySet()) {
-      MetadataRules.ComplianceCategoryRules categoryRules = getRules(filter.getKey(), filter.getValue());
-      MetadataRules.RepositoryRuleKey repoRuleKey = MetadataRules.RepositoryRuleKey.of(ruleKey);
-      if (!categoryRules.ruleKeys().contains(repoRuleKey.rule()) && !categoryRules.repoRuleKeys().contains(repoRuleKey)) {
+      ComplianceCategoryRules categoryRules = getRules(filter.getKey(), filter.getValue());
+      if (!categoryRules.contains(ruleKey)) {
         return false;
       }
     }
@@ -146,5 +145,9 @@ public class MetadataRules {
     Collection<String> ruleKeys
   ) {
 
+    public boolean contains(String ruleKey) {
+      RepositoryRuleKey repoRuleKey = RepositoryRuleKey.of(ruleKey);
+      return ruleKeys.contains(repoRuleKey.rule()) || repoRuleKeys.contains(repoRuleKey);
+    }
   }
 }

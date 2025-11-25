@@ -51,7 +51,9 @@ class AggregateCategoryStats {
     return reviewedHotspots;
   }
 
-  public CategoryStats toImmutable(int hotspotRating) {
+  public CategoryStats toImmutable() {
+    int hotspotRating = computeSecurityReviewRating(toReviewHotspots, reviewedHotspots);
+
     return new CategoryStats(
       openIssues,
       toReviewHotspots,
@@ -61,6 +63,25 @@ class AggregateCategoryStats {
       hotspotRating,
       activeRules
     );
+  }
+
+  private static int computeSecurityReviewRating(int hotspotsToReview, int hotspotsReviewed) {
+    long total = (long) hotspotsToReview + (long) hotspotsReviewed;
+    if (total == 0) {
+      return 1;
+    }
+    double percent = hotspotsReviewed * 100.0D / total;
+
+    if (percent >= 80.0D) {
+      return 1;
+    } else if (percent >= 70.0D) {
+      return 2;
+    } else if (percent >= 50.0D) {
+      return 3;
+    } else if (percent >= 30.0D) {
+      return 4;
+    }
+    return 5;
   }
 }
 
