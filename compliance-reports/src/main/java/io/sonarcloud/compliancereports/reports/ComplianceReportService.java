@@ -11,13 +11,11 @@ import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
 import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
 import jakarta.inject.Singleton;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 @Singleton
 public class ComplianceReportService {
@@ -32,50 +30,57 @@ public class ComplianceReportService {
     this.metadataRules = metadataRules;
   }
 
-  public Map<String, CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard) {
+  public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard) {
+    return getComplianceReport(aggregationId, aggregationType, standard, null);
+  }
+
+  public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard,
+    @Nullable ReportKey cweStandard) {
     Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRules(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
-    Map<String, IssueStats> issueStatsByRuleKey = loadIssueStats(aggregationId, aggregationType);
+    List<IssueStats> issueStatsList = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType);
 
-    Map<String, CategoryStats> report = new HashMap<>();
+    List<CategoryStats> report = new LinkedList<>();
 
     for (Map.Entry<String, ComplianceCategoryRules> e : rulesByCategory.entrySet()) {
       ComplianceCategoryRules categoryRules = e.getValue();
-      List<IssueStats> matchingIssueStats = new LinkedList<>();
-      for (Map.Entry<String, IssueStats> issueStatsEntry : issueStatsByRuleKey.entrySet()) {
-        if (categoryRules.contains(issueStatsEntry.getKey())) {
-          matchingIssueStats.add(issueStatsEntry.getValue());
-        }
-      }
-
-      report.put(e.getKey(), aggregateCategoryStats(matchingIssueStats, activeRuleKeys));
+      List<IssueStats> matchingIssueStats = issueStatsList.stream().filter(s -> categoryRules.contains(s.ruleKey())).toList();
+      List<CategoryStats> cweCategoryStats = getCweCategoryStats(matchingIssueStats, cweStandard, activeRuleKeys);
+      report.add(aggregateCategoryStats(e.getKey(), matchingIssueStats, activeRuleKeys, cweCategoryStats));
     }
 
     return report;
   }
 
-  private CategoryStats aggregateCategoryStats(List<IssueStats> matchingIssueStats, Set<String> activeRuleKeys) {
+  private List<CategoryStats> getCweCategoryStats(List<IssueStats> matchingIssueStats, @Nullable ReportKey cweStandard,
+    Set<String> activeRules) {
+    if (cweStandard == null) {
+      return List.of();
+    }
+    Map<String, ComplianceCategoryRules> cweRulesByCategory = metadataRules.getRules(cweStandard);
+    List<CategoryStats> report = new LinkedList<>();
+
+    for (Map.Entry<String, ComplianceCategoryRules> e : cweRulesByCategory.entrySet()) {
+      ComplianceCategoryRules cweCategoryRules = e.getValue();
+      List<IssueStats> cweIssueStats = matchingIssueStats.stream().filter(s -> cweCategoryRules.contains(s.ruleKey())).toList();
+      if (!cweIssueStats.isEmpty()) {
+        report.add(aggregateCategoryStats(e.getKey(), cweIssueStats, activeRules, List.of()));
+      }
+    }
+
+    return report;
+  }
+
+  private CategoryStats aggregateCategoryStats(String category, List<IssueStats> matchingIssueStats, Set<String> activeRuleKeys,
+    List<CategoryStats> children) {
     AggregateCategoryStats aggregate = new AggregateCategoryStats();
     for (IssueStats issueStats : matchingIssueStats) {
-      aggregateIssueStats(issueStats, aggregate);
+      aggregate.add(issueStats);
       if (activeRuleKeys.contains(issueStats.ruleKey())) {
         aggregate.incrementActiveRules();
       }
     }
 
-    return aggregate.toImmutable();
-  }
-
-  private static void aggregateIssueStats(IssueStats issueStats, AggregateCategoryStats aggregate) {
-    aggregate.addOpenIssues(issueStats.issueCount());
-    aggregate.addToReviewHotspots(issueStats.hotspotCount());
-    aggregate.addReviewedHotspots(issueStats.hotspotsReviewed());
-    aggregate.addToRatingDistribution(issueStats.rating(), issueStats.issueCount());
-    aggregate.updateRating(issueStats.rating());
-  }
-
-  private Map<String, IssueStats> loadIssueStats(String aggregationId, AggregationType aggregationType) {
-    return issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType).stream()
-      .collect(Collectors.toMap(IssueStats::ruleKey, Function.identity()));
+    return aggregate.toImmutable(category, children);
   }
 }

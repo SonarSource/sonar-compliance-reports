@@ -9,10 +9,13 @@ import io.sonarcloud.compliancereports.dao.ActiveRuleDao;
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
 import io.sonarcloud.compliancereports.reports.RuleBuckets.RuleBucket;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.sonarcloud.compliancereports.dao.AggregationType.PROJECT;
@@ -29,13 +32,17 @@ class ComplianceReportServiceTest {
   private final ActiveRuleDao activeRuleDao = mock();
   private final MetadataLoader metadataLoader = mock();
   private final MetadataRules metadataRules = new MetadataRules(metadataLoader);
-  private final RuleBuckets ruleBuckets = mock();
-
+  private final Map<ReportKey, RuleBuckets> metadataMap = new HashMap<>();
   private final ComplianceReportService underTest = new ComplianceReportService(issueStatsByRuleKeyDao, activeRuleDao, metadataRules);
+
+  @BeforeEach
+  void beforeEach() {
+    when(metadataLoader.getAllMetadata()).thenReturn(metadataMap);
+  }
 
   @Test
   void whenGetComplianceReport_shouldReturnReportWithCorrectData() {
-    setupMetadata(Set.of(
+    setupMetadata(List.of(
       new RuleBucket("a1", Set.of("java:1", "java:2", "java:3", "java:4", "java:5")),
       new RuleBucket("a2", Set.of("java:6", "java:7", "java:8", "java:9", "java:10")),
       new RuleBucket("a3", Set.of("java:11", "java:12", "java:13", "java:14", "java:15")),
@@ -57,16 +64,61 @@ class ComplianceReportServiceTest {
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
     assertThat(report)
-      .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 100, 3, 1, 0, 1, Map.of(3, 100)))
-      .hasEntrySatisfying("a2", categoryStats -> assertCategoryStats(categoryStats, 0, 1, 1, 3, 2, Map.of(1, 0)))
-      .hasEntrySatisfying("a3", categoryStats -> assertCategoryStats(categoryStats, 50, 2, 1, 10, 3, Map.of(1, 20, 2, 30)))
-      .hasEntrySatisfying("a4", categoryStats -> assertCategoryStats(categoryStats, 0, 1, 1, 7, 4, Map.of(1, 0)))
-      .hasEntrySatisfying("a5", categoryStats -> assertCategoryStats(categoryStats, 0, 1, 1, 10, 5, Map.of(1, 0)));
+      .containsOnly(
+        new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()),
+        new CategoryStats("a2", 0, 3, 7, 1, Map.of(1, 0), 2, 1, List.of()),
+        new CategoryStats("a3", 50, 10, 10, 2, Map.of(1, 20, 2, 30), 3, 1, List.of()),
+        new CategoryStats("a4", 0, 7, 3, 1, Map.of(1, 0), 4, 1, List.of()),
+        new CategoryStats("a5", 0, 10, 0, 1, Map.of(1, 0), 5, 1, List.of()));
+  }
+
+  @Test
+  void whenGetComplianceReportWithCwe_shouldReturnReportWithCorrectData() {
+    setupMetadata(List.of(
+      new RuleBucket("a1", Set.of("java:1", "java:2", "java:3")),
+      new RuleBucket("a2", Set.of("java:4", "java:5", "java:6")),
+      new RuleBucket("a3", Set.of("java:7", "java:8", "java:9"))
+    ));
+    ReportKey cweReport = new ReportKey("cwe", "v1");
+    setupMetadata(cweReport, List.of(
+      new RuleBucket("cwe-1", Set.of("java:1", "java:4", "java:7")),
+      new RuleBucket("cwe-2", Set.of("java:1", "java:2")),
+      new RuleBucket("cwe-3", Set.of("java:1", "java:4", "java:8"))
+    ));
+
+    setupIssueStats(List.of(
+      new IssueStats("java:1", 100, 3, 0, 0),
+      new IssueStats("java:2", 1, 1, 3, 7),
+      new IssueStats("java:4", 20, 1, 5, 5),
+      new IssueStats("java:7", 30, 2, 5, 5),
+      new IssueStats("java:9", 1, 1, 7, 3)
+    ));
+
+    setupActiveRules(Set.of("java:1", "java:2", "java:4", "java:7", "java:9"));
+
+    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, cweReport);
+
+    assertThat(report)
+      .containsOnly(
+        new CategoryStats("a1", 101, 3, 7, 3, Map.of(1, 1, 3, 100), 2, 2,
+          List.of(
+            new CategoryStats("cwe-1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()),
+            new CategoryStats("cwe-2", 101, 3, 7, 3, Map.of(1, 1, 3, 100), 2, 2, List.of()),
+            new CategoryStats("cwe-3", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()))
+        ),
+        new CategoryStats("a2", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of(
+          new CategoryStats("cwe-1", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of()),
+          new CategoryStats("cwe-3", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of()))
+        ),
+        new CategoryStats("a3", 31, 12, 8, 2, Map.of(1, 1, 2, 30), 4, 2, List.of(
+          new CategoryStats("cwe-1", 30, 5, 5, 2, Map.of(2, 30), 3, 1, List.of()))
+        )
+      );
   }
 
   @Test
   void whenGetComplianceReport_shouldReturnReportWithCategoryMatchesWildcardRules() {
-    setupMetadata(Set.of(
+    setupMetadata(List.of(
       new RuleBucket("a1", Set.of(":S1", "java:S1")),
       new RuleBucket("a2", Set.of("java:S2"))
     ));
@@ -82,14 +134,15 @@ class ComplianceReportServiceTest {
 
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
-    assertThat(report)
-      .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 200, 3, 1, 0, 1, Map.of(3, 200)))
-      .hasEntrySatisfying("a2", categoryStats -> assertCategoryStats(categoryStats, 0, 1, 1, 3, 2, Map.of(1, 0)));
+    assertThat(report).containsOnly(
+      new CategoryStats("a1", 200, 0, 0, 3, Map.of(3, 200), 1, 1, List.of()),
+      new CategoryStats("a2", 0, 3, 7, 1, Map.of(1, 0), 2, 1, List.of())
+    );
   }
 
   @Test
   void whenGetComplianceReport_shouldNotDoubleCountWithOverlappingConcreteAndWildcardRules() {
-    setupMetadata(Set.of(new RuleBucket("a1", Set.of(":S1", "java:S1"))));
+    setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:S1"))));
 
     setupIssueStats(List.of(new IssueStats("java:S1", 100, 3, 0, 0)));
 
@@ -97,13 +150,14 @@ class ComplianceReportServiceTest {
 
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
-    assertThat(report)
-      .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 100, 3, 1, 0, 1, Map.of(3, 100)));
+    assertThat(report).containsOnly(
+      new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of())
+    );
   }
 
   @Test
   void whenGetComplianceReport_shouldHandleMultipleColonsInIssueStatsRuleKeys() {
-    setupMetadata(Set.of(new RuleBucket("a1", Set.of(":S1", "java:security:S1"))));
+    setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:security:S1"))));
 
     setupIssueStats(List.of(new IssueStats("java:security:S1", 100, 3, 0, 0)));
 
@@ -111,13 +165,19 @@ class ComplianceReportServiceTest {
 
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
-    assertThat(report)
-      .hasEntrySatisfying("a1", categoryStats -> assertCategoryStats(categoryStats, 100, 3, 1, 0, 1, Map.of(3, 100)));
+    assertThat(report).containsOnly(
+      new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of())
+    );
   }
 
-  private void setupMetadata(Set<RuleBucket> buckets) {
-    when(ruleBuckets.getBuckets()).thenReturn(buckets);
-    when(metadataLoader.getAllMetadata()).thenReturn(Map.of(REPORT_KEY, ruleBuckets));
+  private void setupMetadata(List<RuleBucket> buckets) {
+    setupMetadata(REPORT_KEY, buckets);
+  }
+
+  private void setupMetadata(ReportKey reportKey, List<RuleBucket> buckets) {
+    RuleBuckets ruleBuckets = mock();
+    when(ruleBuckets.getBuckets()).thenReturn(new LinkedHashSet<>(buckets));
+    metadataMap.put(reportKey, ruleBuckets);
   }
 
   private void setupIssueStats(List<IssueStats> stats) {
@@ -126,12 +186,5 @@ class ComplianceReportServiceTest {
 
   private void setupActiveRules(Set<String> ruleKeys) {
     when(activeRuleDao.getActiveRuleKeys(PROJECT_ID, PROJECT)).thenReturn(ruleKeys);
-  }
-
-  private void assertCategoryStats(Object categoryStats, int openIssues, int rating, int activeRules,
-    int toReviewHotspots, int hotspotRating, Map<Integer, Integer> ratingDistribution) {
-    assertThat(categoryStats)
-      .extracting("openIssues", "rating", "activeRules", "toReviewHotspots", "hotspotRating", "ratingDistribution")
-      .containsExactly(openIssues, rating, activeRules, toReviewHotspots, hotspotRating, ratingDistribution);
   }
 }

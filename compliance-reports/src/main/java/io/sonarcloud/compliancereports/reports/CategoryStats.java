@@ -5,14 +5,17 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
+import java.util.List;
 import java.util.Map;
 
 public record CategoryStats(
+  String categoryName,
   int openIssues,
   int toReviewHotspots,
   int reviewedHotspots,
   int rating,
   Map<Integer, Integer> ratingDistribution,
   int hotspotRating,
-  int activeRules
+  int activeRules,
+  List<CategoryStats> children
 ) {}

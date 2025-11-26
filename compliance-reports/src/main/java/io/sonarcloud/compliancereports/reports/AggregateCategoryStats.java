@@ -5,7 +5,9 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
+import io.sonarcloud.compliancereports.dao.IssueStats;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -18,6 +20,15 @@ class AggregateCategoryStats {
   private int rating = 1;
   private int activeRules = 0;
   private final Map<Integer, Integer> ratingDistribution = new HashMap<>();
+
+
+  public void add(IssueStats issueStats) {
+    addOpenIssues(issueStats.issueCount());
+    addToReviewHotspots(issueStats.hotspotCount());
+    addReviewedHotspots(issueStats.hotspotsReviewed());
+    addToRatingDistribution(issueStats.rating(), issueStats.issueCount());
+    updateRating(issueStats.rating());
+  }
 
   public void addOpenIssues(int count) {
     this.openIssues += count;
@@ -51,17 +62,19 @@ class AggregateCategoryStats {
     return reviewedHotspots;
   }
 
-  public CategoryStats toImmutable() {
+  public CategoryStats toImmutable(String category, List<CategoryStats> children) {
     int hotspotRating = computeSecurityReviewRating(toReviewHotspots, reviewedHotspots);
 
     return new CategoryStats(
+      category,
       openIssues,
       toReviewHotspots,
       reviewedHotspots,
       rating,
       ratingDistribution,
       hotspotRating,
-      activeRules
+      activeRules,
+      children
     );
   }
 

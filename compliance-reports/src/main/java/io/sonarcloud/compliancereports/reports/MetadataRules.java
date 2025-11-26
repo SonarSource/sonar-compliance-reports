@@ -8,6 +8,7 @@ package io.sonarcloud.compliancereports.reports;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,7 @@ public class MetadataRules {
   }
 
   public Map<String, ComplianceCategoryRules> getRules(ReportKey standard) {
-    Map<String, ComplianceCategoryRules> rulesPerCategory = new HashMap<>();
+    Map<String, ComplianceCategoryRules> rulesPerCategory = new LinkedHashMap<>();
 
     for (RuleBuckets.RuleBucket ruleBucket : metadataLoader.getAllMetadata().get(standard).getBuckets()) {
       Set<RepositoryRuleKey> repoRuleKeys = new HashSet<>();
