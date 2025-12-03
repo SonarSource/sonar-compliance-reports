@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -80,10 +79,16 @@ public class MetadataRules {
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
     Map<String, ComplianceCategoryRules> rulesByCategory = getRules(standard);
     Map<String, Long> ruleCountByCategory = new HashMap<>();
+    Map<RepositoryRuleKey, Long> countByRepoRuleKey = countByRuleKey.entrySet().stream().collect(Collectors.toMap(
+      e -> RepositoryRuleKey.of(e.getKey()), Map.Entry::getValue));
 
     for (Map.Entry<String, ComplianceCategoryRules> categoryEntry : rulesByCategory.entrySet()) {
+      if (categoryEntry.getValue().isEmpty()) {
+        ruleCountByCategory.put(categoryEntry.getKey(), 0L);
+        continue;
+      }
       long sum = 0L;
-      for (Map.Entry<String, Long> countEntry : countByRuleKey.entrySet()) {
+      for (Map.Entry<RepositoryRuleKey, Long> countEntry : countByRepoRuleKey.entrySet()) {
         if (categoryEntry.getValue().contains(countEntry.getKey())) {
           sum += countEntry.getValue();
         }
@@ -137,14 +142,22 @@ public class MetadataRules {
 
   public record ComplianceCategoryRules(
     // fully specified rules, such as "java:S001"
-    Collection<RepositoryRuleKey> repoRuleKeys,
+    Set<RepositoryRuleKey> repoRuleKeys,
     // rule wildcards, such as "S001"
-    Collection<String> ruleKeys
+    Set<String> ruleKeys
   ) {
 
     public boolean contains(String ruleKey) {
       RepositoryRuleKey repoRuleKey = RepositoryRuleKey.of(ruleKey);
+      return contains(repoRuleKey);
+    }
+
+    public boolean contains(RepositoryRuleKey repoRuleKey) {
       return ruleKeys.contains(repoRuleKey.rule()) || repoRuleKeys.contains(repoRuleKey);
+    }
+
+    public boolean isEmpty() {
+      return ruleKeys.isEmpty() && repoRuleKeys.isEmpty();
     }
   }
 }
