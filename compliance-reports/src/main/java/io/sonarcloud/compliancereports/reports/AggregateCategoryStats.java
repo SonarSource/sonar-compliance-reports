@@ -12,6 +12,8 @@ import java.util.Map;
 
 /**
  * Mutable accumulator for aggregating category statistics.
+ * <p>**** THIS LOGIC IS INTENTIONALLY DUPLICATED TO ProjectAggregation ****</p>*
+ * <p>If you're going to consolidate the logic here to a shared location, be sure to update ProjectAggregation as well!</p>
  */
 class AggregateCategoryStats {
   private int openIssues = 0;
