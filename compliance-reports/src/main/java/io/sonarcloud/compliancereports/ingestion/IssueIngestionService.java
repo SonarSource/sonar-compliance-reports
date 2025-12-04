@@ -57,7 +57,7 @@ public class IssueIngestionService {
         } else {
           hotspotsReviewed++;
         }
-      } else if (IssueStatus.OPEN.toString().equals(issue.status())) {
+      } else {
         issueCount++;
         issueRating = Math.max(issueRating, issue.severity());
         issueMqrRating = Math.max(issueMqrRating, issue.mqrSeverity());

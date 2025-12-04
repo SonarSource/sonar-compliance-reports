@@ -46,7 +46,7 @@ class IssueIngestionServiceTest {
     assertThat(capturedIssues)
       .containsExactlyInAnyOrder(
         new IssueStats("java:1", 3, 2, 2, 0, 0),
-        new IssueStats("python:42", 2, 3, 3, 0, 0),
+        new IssueStats("python:42", 3, 3, 3, 0, 0),
         new IssueStats("cs:100", 0, 1, 1, 1, 1)
       );
   }
