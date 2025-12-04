@@ -27,14 +27,14 @@ class IssueIngestionServiceTest {
   @Test
   void onIngestion_shouldPopulateDataStore() {
     var issues = List.of(
-      new IssueFromAnalysis("java:1", "OPEN", false, 2),
-      new IssueFromAnalysis("java:1", "OPEN", false, 2),
-      new IssueFromAnalysis("java:1", "OPEN", false, 2),
-      new IssueFromAnalysis("python:42", "OPEN", false, 3),
-      new IssueFromAnalysis("python:42", "OPEN", false, 3),
-      new IssueFromAnalysis("python:42", "FIXED", false, 3),
-      new IssueFromAnalysis("cs:100", "TO_REVIEW", true, 5),
-      new IssueFromAnalysis("cs:100", "REVIEWED", true, 5)
+      new IssueFromAnalysis("java:1", "OPEN", false, 2, 2),
+      new IssueFromAnalysis("java:1", "OPEN", false, 2, 2),
+      new IssueFromAnalysis("java:1", "OPEN", false, 2, 2),
+      new IssueFromAnalysis("python:42", "OPEN", false, 3, 3),
+      new IssueFromAnalysis("python:42", "OPEN", false, 3, 3),
+      new IssueFromAnalysis("python:42", "FIXED", false, 3, 3),
+      new IssueFromAnalysis("cs:100", "TO_REVIEW", true, 5, 5),
+      new IssueFromAnalysis("cs:100", "REVIEWED", true, 5, 5)
     );
 
     underTest.ingest(PROJECT_ID, PROJECT, issues);
@@ -44,11 +44,10 @@ class IssueIngestionServiceTest {
     var capturedIssues = issuesCaptor.getValue();
 
     assertThat(capturedIssues)
-      .hasSize(3)
       .containsExactlyInAnyOrder(
-        new IssueStats("java:1", 3, 2, 0, 0),
-        new IssueStats("python:42", 2, 3, 0, 0),
-        new IssueStats("cs:100", 0, 1, 1, 1)
+        new IssueStats("java:1", 3, 2, 2, 0, 0),
+        new IssueStats("python:42", 2, 3, 3, 0, 0),
+        new IssueStats("cs:100", 0, 1, 1, 1, 1)
       );
   }
 }

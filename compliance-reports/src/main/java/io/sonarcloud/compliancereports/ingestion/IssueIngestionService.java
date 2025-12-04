@@ -46,6 +46,7 @@ public class IssueIngestionService {
   private IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
     int issueCount = 0;
     int issueRating = 1;
+    int issueMqrRating = 1;
     int hotspotsToReview = 0;
     int hotspotsReviewed = 0;
 
@@ -59,10 +60,11 @@ public class IssueIngestionService {
       } else if (IssueStatus.OPEN.toString().equals(issue.status())) {
         issueCount++;
         issueRating = Math.max(issueRating, issue.severity());
+        issueMqrRating = Math.max(issueMqrRating, issue.mqrSeverity());
       }
     }
 
-    return new IssueStats(ruleKey, issueCount, issueRating, hotspotsToReview, hotspotsReviewed);
+    return new IssueStats(ruleKey, issueCount, issueRating, issueMqrRating, hotspotsToReview, hotspotsReviewed);
   }
 
 }

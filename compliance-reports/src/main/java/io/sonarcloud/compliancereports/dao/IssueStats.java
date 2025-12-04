@@ -5,5 +5,5 @@
  */
 package io.sonarcloud.compliancereports.dao;
 
-public record IssueStats(String ruleKey, int issueCount, int rating, int hotspotCount, int hotspotsReviewed) {
+public record IssueStats(String ruleKey, int issueCount, int rating, int mqrRating, int hotspotCount, int hotspotsReviewed) {
 }

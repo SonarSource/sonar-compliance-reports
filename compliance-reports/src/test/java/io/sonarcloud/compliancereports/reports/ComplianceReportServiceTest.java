@@ -51,12 +51,12 @@ class ComplianceReportServiceTest {
     ));
 
     setupIssueStats(List.of(
-      new IssueStats("java:1", 100, 3, 0, 0),
-      new IssueStats("java:7", 0, 1, 3, 7),
-      new IssueStats("java:11", 20, 1, 5, 5),
-      new IssueStats("java:13", 30, 2, 5, 5),
-      new IssueStats("java:19", 0, 1, 7, 3),
-      new IssueStats("java:25", 0, 1, 10, 0)
+      new IssueStats("java:1", 100, 3, 3, 0, 0),
+      new IssueStats("java:7", 0, 1, 1, 3, 7),
+      new IssueStats("java:11", 20, 1, 1, 5, 5),
+      new IssueStats("java:13", 30, 2, 2, 5, 5),
+      new IssueStats("java:19", 0, 1, 1, 7, 3),
+      new IssueStats("java:25", 0, 1, 1, 10, 0)
     ));
 
     setupActiveRules(Set.of("java:1", "java:7", "java:13", "java:19", "java:25"));
@@ -87,11 +87,11 @@ class ComplianceReportServiceTest {
     ));
 
     setupIssueStats(List.of(
-      new IssueStats("java:1", 100, 3, 0, 0),
-      new IssueStats("java:2", 1, 1, 3, 7),
-      new IssueStats("java:4", 20, 1, 5, 5),
-      new IssueStats("java:7", 30, 2, 5, 5),
-      new IssueStats("java:9", 1, 1, 7, 3)
+      new IssueStats("java:1", 100, 3, 3, 0, 0),
+      new IssueStats("java:2", 1, 1, 1, 3, 7),
+      new IssueStats("java:4", 20, 1, 1, 5, 5),
+      new IssueStats("java:7", 30, 2, 2, 5, 5),
+      new IssueStats("java:9", 1, 1, 1, 7, 3)
     ));
 
     setupActiveRules(Set.of("java:1", "java:2", "java:4", "java:7", "java:9"));
@@ -124,10 +124,10 @@ class ComplianceReportServiceTest {
     ));
 
     setupIssueStats(List.of(
-      new IssueStats("java:S1", 100, 3, 0, 0),
-      new IssueStats("cpp:S1", 100, 3, 0, 0),
-      new IssueStats("java:S2", 0, 1, 3, 7),
-      new IssueStats("cpp:S2", 0, 1, 3, 7)
+      new IssueStats("java:S1", 100, 3, 3, 0, 0),
+      new IssueStats("cpp:S1", 100, 3, 3, 0, 0),
+      new IssueStats("java:S2", 0, 1, 1, 3, 7),
+      new IssueStats("cpp:S2", 0, 1, 1, 3, 7)
     ));
 
     setupActiveRules(Set.of("java:S1", "java:S2"));
@@ -144,7 +144,7 @@ class ComplianceReportServiceTest {
   void whenGetComplianceReport_shouldNotDoubleCountWithOverlappingConcreteAndWildcardRules() {
     setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:S1"))));
 
-    setupIssueStats(List.of(new IssueStats("java:S1", 100, 3, 0, 0)));
+    setupIssueStats(List.of(new IssueStats("java:S1", 100, 3, 3, 0, 0)));
 
     setupActiveRules(Set.of("java:S1"));
 
@@ -159,7 +159,7 @@ class ComplianceReportServiceTest {
   void whenGetComplianceReport_shouldHandleMultipleColonsInIssueStatsRuleKeys() {
     setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:security:S1"))));
 
-    setupIssueStats(List.of(new IssueStats("java:security:S1", 100, 3, 0, 0)));
+    setupIssueStats(List.of(new IssueStats("java:security:S1", 100, 3, 3, 0, 0)));
 
     setupActiveRules(Set.of("java:security:S1"));
 
