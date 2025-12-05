@@ -14,7 +14,9 @@ public record CategoryStats(
   int toReviewHotspots,
   int reviewedHotspots,
   int rating,
+  int mqrRating,
   Map<Integer, Integer> ratingDistribution,
+  Map<Integer, Integer> mqrRatingDistribution,
   int hotspotRating,
   int activeRules,
   List<CategoryStats> children

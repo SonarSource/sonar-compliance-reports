@@ -20,8 +20,10 @@ class AggregateCategoryStats {
   private int toReviewHotspots = 0;
   private int reviewedHotspots = 0;
   private int rating = 1;
+  private int mqrRating = 1;
   private int activeRules = 0;
   private final Map<Integer, Integer> ratingDistribution = new HashMap<>();
+  private final Map<Integer, Integer> mqrRatingDistribution = new HashMap<>();
 
 
   public void add(IssueStats issueStats) {
@@ -29,7 +31,9 @@ class AggregateCategoryStats {
     addToReviewHotspots(issueStats.hotspotCount());
     addReviewedHotspots(issueStats.hotspotsReviewed());
     addToRatingDistribution(issueStats.rating(), issueStats.issueCount());
+    addToMqrRatingDistribution(issueStats.mqrRating(), issueStats.issueCount());
     updateRating(issueStats.rating());
+    updateMqrRating(issueStats.mqrRating());
   }
 
   public void addOpenIssues(int count) {
@@ -48,8 +52,16 @@ class AggregateCategoryStats {
     this.rating = Math.max(this.rating, newRating);
   }
 
+  public void updateMqrRating(int newMqrRating) {
+    this.mqrRating = Math.max(this.mqrRating, newMqrRating);
+  }
+
   public void addToRatingDistribution(int rating, int count) {
     this.ratingDistribution.compute(rating, (k, v) -> (v == null ? 0 : v) + count);
+  }
+
+  public void addToMqrRatingDistribution(int mqrRating, int count) {
+    this.mqrRatingDistribution.compute(mqrRating, (k, v) -> (v == null ? 0 : v) + count);
   }
 
   public void incrementActiveRules() {
@@ -73,7 +85,9 @@ class AggregateCategoryStats {
       toReviewHotspots,
       reviewedHotspots,
       rating,
+      mqrRating,
       ratingDistribution,
+      mqrRatingDistribution,
       hotspotRating,
       activeRules,
       children

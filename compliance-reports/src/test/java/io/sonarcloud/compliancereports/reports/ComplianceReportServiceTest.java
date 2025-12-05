@@ -51,11 +51,11 @@ class ComplianceReportServiceTest {
     ));
 
     setupIssueStats(List.of(
-      new IssueStats("java:1", 100, 3, 3, 0, 0),
-      new IssueStats("java:7", 0, 1, 1, 3, 7),
-      new IssueStats("java:11", 20, 1, 1, 5, 5),
-      new IssueStats("java:13", 30, 2, 2, 5, 5),
-      new IssueStats("java:19", 0, 1, 1, 7, 3),
+      new IssueStats("java:1", 100, 3, 4, 0, 0),
+      new IssueStats("java:7", 0, 1, 2, 3, 7),
+      new IssueStats("java:11", 20, 1, 3, 5, 5),
+      new IssueStats("java:13", 30, 2, 1, 5, 5),
+      new IssueStats("java:19", 0, 1, 5, 7, 3),
       new IssueStats("java:25", 0, 1, 1, 10, 0)
     ));
 
@@ -65,11 +65,11 @@ class ComplianceReportServiceTest {
 
     assertThat(report)
       .containsOnly(
-        new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()),
-        new CategoryStats("a2", 0, 3, 7, 1, Map.of(1, 0), 2, 1, List.of()),
-        new CategoryStats("a3", 50, 10, 10, 2, Map.of(1, 20, 2, 30), 3, 1, List.of()),
-        new CategoryStats("a4", 0, 7, 3, 1, Map.of(1, 0), 4, 1, List.of()),
-        new CategoryStats("a5", 0, 10, 0, 1, Map.of(1, 0), 5, 1, List.of()));
+        new CategoryStats("a1", 100, 0, 0, 3, 4, Map.of(3, 100), Map.of(4, 100), 1, 1, List.of()),
+        new CategoryStats("a2", 0, 3, 7, 1, 2, Map.of(1, 0), Map.of(2, 0), 2, 1, List.of()),
+        new CategoryStats("a3", 50, 10, 10, 2, 3, Map.of(1, 20, 2, 30), Map.of(1, 30, 3, 20), 3, 1, List.of()),
+        new CategoryStats("a4", 0, 7, 3, 1, 5, Map.of(1, 0), Map.of(5, 0), 4, 1, List.of()),
+        new CategoryStats("a5", 0, 10, 0, 1, 1, Map.of(1, 0), Map.of(1, 0), 5, 1, List.of()));
   }
 
   @Test
@@ -100,18 +100,18 @@ class ComplianceReportServiceTest {
 
     assertThat(report)
       .containsOnly(
-        new CategoryStats("a1", 101, 3, 7, 3, Map.of(1, 1, 3, 100), 2, 2,
+        new CategoryStats("a1", 101, 3, 7, 3, 3, Map.of(1, 1, 3, 100), Map.of(1, 1, 3, 100), 2, 2,
           List.of(
-            new CategoryStats("cwe-1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()),
-            new CategoryStats("cwe-2", 101, 3, 7, 3, Map.of(1, 1, 3, 100), 2, 2, List.of()),
-            new CategoryStats("cwe-3", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of()))
+            new CategoryStats("cwe-1", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of()),
+            new CategoryStats("cwe-2", 101, 3, 7, 3, 3, Map.of(1, 1, 3, 100), Map.of(1, 1, 3, 100), 2, 2, List.of()),
+            new CategoryStats("cwe-3", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of()))
         ),
-        new CategoryStats("a2", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of(
-          new CategoryStats("cwe-1", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of()),
-          new CategoryStats("cwe-3", 20, 5, 5, 1, Map.of(1, 20), 3, 1, List.of()))
+        new CategoryStats("a2", 20, 5, 5, 1, 1, Map.of(1, 20), Map.of(1, 20), 3, 1, List.of(
+          new CategoryStats("cwe-1", 20, 5, 5, 1, 1, Map.of(1, 20), Map.of(1, 20), 3, 1, List.of()),
+          new CategoryStats("cwe-3", 20, 5, 5, 1, 1, Map.of(1, 20), Map.of(1, 20), 3, 1, List.of()))
         ),
-        new CategoryStats("a3", 31, 12, 8, 2, Map.of(1, 1, 2, 30), 4, 2, List.of(
-          new CategoryStats("cwe-1", 30, 5, 5, 2, Map.of(2, 30), 3, 1, List.of()))
+        new CategoryStats("a3", 31, 12, 8, 2, 2, Map.of(1, 1, 2, 30), Map.of(1, 1, 2, 30), 4, 2, List.of(
+          new CategoryStats("cwe-1", 30, 5, 5, 2, 2, Map.of(2, 30), Map.of(2, 30), 3, 1, List.of()))
         )
       );
   }
@@ -135,8 +135,8 @@ class ComplianceReportServiceTest {
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
     assertThat(report).containsOnly(
-      new CategoryStats("a1", 200, 0, 0, 3, Map.of(3, 200), 1, 1, List.of()),
-      new CategoryStats("a2", 0, 3, 7, 1, Map.of(1, 0), 2, 1, List.of())
+      new CategoryStats("a1", 200, 0, 0, 3, 3, Map.of(3, 200), Map.of(3, 200), 1, 1, List.of()),
+      new CategoryStats("a2", 0, 3, 7, 1, 1, Map.of(1, 0), Map.of(1, 0), 2, 1, List.of())
     );
   }
 
@@ -151,7 +151,7 @@ class ComplianceReportServiceTest {
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
     assertThat(report).containsOnly(
-      new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of())
+      new CategoryStats("a1", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of())
     );
   }
 
@@ -166,7 +166,7 @@ class ComplianceReportServiceTest {
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
     assertThat(report).containsOnly(
-      new CategoryStats("a1", 100, 0, 0, 3, Map.of(3, 100), 1, 1, List.of())
+      new CategoryStats("a1", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of())
     );
   }
 
