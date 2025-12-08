@@ -36,7 +36,7 @@ public class ComplianceReportService {
 
   public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard,
     @Nullable ReportKey cweStandard) {
-    Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRules(standard);
+    Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRulesByCategory(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     List<IssueStats> issueStatsList = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType);
 
@@ -57,7 +57,7 @@ public class ComplianceReportService {
     if (cweStandard == null) {
       return List.of();
     }
-    Map<String, ComplianceCategoryRules> cweRulesByCategory = metadataRules.getRules(cweStandard);
+    Map<String, ComplianceCategoryRules> cweRulesByCategory = metadataRules.getRulesByCategory(cweStandard);
     List<CategoryStats> report = new LinkedList<>();
 
     for (Map.Entry<String, ComplianceCategoryRules> e : cweRulesByCategory.entrySet()) {

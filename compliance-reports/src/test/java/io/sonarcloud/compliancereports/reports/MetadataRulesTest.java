@@ -7,33 +7,59 @@ package io.sonarcloud.compliancereports.reports;
 
 import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
 import io.sonarcloud.compliancereports.reports.MetadataRules.RepositoryRuleKey;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MetadataRulesTest {
   private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(
     () -> "TestMetadata.yml", () -> "TestMetadata2.yml"));
   private final MetadataRules metadataRules = new MetadataRules(metaDataLoader);
 
-
   @Test
-  void getRules_returns_rules_and_wildcards() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("category1")));
-    assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.ruleKeys()).containsOnly("2", "3");
+  void getRulesByStandard_throws_IAE_if_standard_unknown() {
+    Map<ReportKey, Set<String>> map = Map.of(new ReportKey("unknown", "V1"), Set.of("cat1"));
+    assertThatThrownBy(() -> metadataRules.getRulesByStandard(map)).isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
-  void getRules_returns_rules_and_wildcards_for_multiple_categories() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("category1", "category2")));
-    assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.ruleKeys()).containsOnly("1", "2", "3");
+  void getRulesByStandard_returns_rules_and_wildcards() {
+    ReportKey reportKey = new ReportKey("test", "V1");
+    Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1")));
+    assertThat(rules).containsOnlyKeys(reportKey);
+    assertThat(rules.get(reportKey).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).ruleKeys()).containsOnly("2", "3");
+  }
+
+  @Test
+  void getRulesByStandard_returns_rules_and_wildcards_for_multiple_categories() {
+    ReportKey reportKey = new ReportKey("test", "V1");
+    Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1", "category2")));
+    assertThat(rules.get(reportKey).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).ruleKeys()).containsOnly("1", "2", "3");
+  }
+
+  @Test
+  void getRulesByStandard_returns_rules_and_wildcards_for_multiple_standards() {
+    ReportKey reportKey1 = new ReportKey("test", "V1");
+    ReportKey reportKey2 = new ReportKey("test", "V2");
+
+    Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(
+      reportKey1, Set.of("category1", "category2"),
+      reportKey2, Set.of("cat1", "non existent")
+    ));
+
+    assertThat(rules).containsOnlyKeys(reportKey1, reportKey2);
+
+    assertThat(rules.get(reportKey1).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey1).ruleKeys()).containsOnly("1", "2", "3");
+
+    assertThat(rules.get(reportKey2).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey2).ruleKeys()).isEmpty();
   }
 
   @Test
@@ -44,17 +70,10 @@ class MetadataRulesTest {
   }
 
   @Test
-  void getRules_returns_empty_if_category_is_unknown() {
-    ComplianceCategoryRules rules = metadataRules.getRules(Map.of(new ReportKey("test", "V1"), Set.of("unknown")));
-    assertThat(rules.repoRuleKeys()).isEmpty();
-    assertThat(rules.ruleKeys()).isEmpty();
-  }
-
-  @Test
-  void getRules_for_single_standard() {
-    ComplianceCategoryRules rules = metadataRules.getRules(new ReportKey("test", "V1"), List.of("category1"));
-    assertThat(rules.repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.ruleKeys()).containsOnly("2", "3");
+  void getRulesByStandard_returns_empty_if_category_is_unknown() {
+    ReportKey reportKey = new ReportKey("test", "V1");
+    Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("unknown")));
+    assertThat(rules.get(reportKey).isEmpty()).isTrue();
   }
 
   @Test
@@ -73,7 +92,7 @@ class MetadataRulesTest {
 
     Set<String> ruleKeys = Set.of("java:S001", "java:2", "java:3");
 
-    Map<ReportKey, Collection<String>> filters = Map.of(
+    Map<ReportKey, Set<String>> filters = Map.of(
       // filter based on all categories
       reportKey2, Set.of("cat1", "cat2"),
       // filter on reportKey1 should have no effect
