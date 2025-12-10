@@ -105,19 +105,19 @@ public class ComplianceCategoryRules {
     return children;
   }
 
-  protected Set<RepositoryRuleKey> allRepoRuleKeys() {
+  public Set<RepositoryRuleKey> allRepoRuleKeys() {
     return allRepoRuleKeys;
   }
 
-  protected Set<String> allRuleKeys() {
+  public Set<String> allRuleKeys() {
     return allRuleKeys;
   }
 
-  protected Map<Integer, Set<RepositoryRuleKey>> getRepoRuleKeysByLevel() {
+  public Map<Integer, Set<RepositoryRuleKey>> getRepoRuleKeysByLevel() {
     return repoRuleKeysByLevel;
   }
 
-  protected Map<Integer, Set<String>> getRuleKeysByLevel() {
+  public Map<Integer, Set<String>> getRuleKeysByLevel() {
     return ruleKeysByLevel;
   }
 
