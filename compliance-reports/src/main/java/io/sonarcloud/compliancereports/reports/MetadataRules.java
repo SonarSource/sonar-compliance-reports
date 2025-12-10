@@ -5,7 +5,6 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
-import io.sonarcloud.compliancereports.reports.RuleBuckets.RuleBucket;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,23 +28,17 @@ public class MetadataRules {
   public Map<String, ComplianceCategoryRules> getRulesByCategory(ReportKey standard) {
     Map<String, ComplianceCategoryRules> rulesPerCategory = new LinkedHashMap<>();
 
-    for (RuleBucket ruleBucket : metadataLoader.getAllMetadata().get(standard).getBuckets()) {
-      ComplianceCategoryRules rules = new ComplianceCategoryRules(new HashSet<>(), new HashSet<>());
-      collectRules(ruleBucket, rules);
-      rulesPerCategory.put(ruleBucket.key(), rules);
+    for (CategoryTree.CategoryTreeNode categoryTreeNode : metadataLoader.getAllMetadata().get(standard).getChildren()) {
+      putComplianceCategoryRulesIntoMap(categoryTreeNode, rulesPerCategory);
     }
     return rulesPerCategory;
   }
 
-  private void collectRules(RuleBuckets.RuleBucket ruleBucket, ComplianceCategoryRules rules) {
-    for (String ruleKey : ruleBucket.ruleKeys()) {
-      if (!ruleKey.startsWith(":")) {
-        // repo:rule
-        rules.repoRuleKeys().add(RepositoryRuleKey.of(ruleKey));
-      } else {
-        // :rule wildcard
-        rules.ruleKeys().add(ruleKey.substring(ruleKey.indexOf(":") + 1));
-      }
+  private void putComplianceCategoryRulesIntoMap(CategoryTree.CategoryTreeNode categoryTreeNode, Map<String, ComplianceCategoryRules> rulesPerCategory) {
+    var parent = new ComplianceCategoryRules(categoryTreeNode);
+    rulesPerCategory.put(categoryTreeNode.key(), parent);
+    for (var child : categoryTreeNode.children()) {
+      putComplianceCategoryRulesIntoMap(child, parent.getChildren());
     }
   }
 
@@ -55,21 +48,20 @@ public class MetadataRules {
    * @param categoriesByStandard specifies the standards to be returned what categories to collect rules from.
    */
   public Map<ReportKey, ComplianceCategoryRules> getRulesByStandard(Map<ReportKey, Set<String>> categoriesByStandard) {
-    Map<ReportKey, RuleBuckets> metadata = metadataLoader.getAllMetadata();
+    Map<ReportKey, CategoryTree> metadata = metadataLoader.getAllMetadata();
     Map<ReportKey, ComplianceCategoryRules> rulesByStandard = new LinkedHashMap<>();
 
     for (Map.Entry<ReportKey, Set<String>> e : categoriesByStandard.entrySet()) {
-      if (!metadata.containsKey(e.getKey())) {
-        throw new IllegalArgumentException("Unknown standard: " + e.getKey());
-      }
-      ComplianceCategoryRules rules = new ComplianceCategoryRules(new HashSet<>(), new HashSet<>());
-      for (RuleBucket ruleBucket : metadata.get(e.getKey()).getBuckets()) {
-        if (!e.getValue().contains(ruleBucket.key())) {
-          continue;
-        }
-        collectRules(ruleBucket, rules);
+      ReportKey reportKey = e.getKey();
+      Set<String> categories = e.getValue();
+      if (!metadata.containsKey(reportKey)) {
+        throw new IllegalArgumentException("Unknown standard: " + reportKey);
       }
 
+      var filteredCategories = metadata.get(reportKey).getChildren().stream()
+        .filter(cat -> categories.contains(cat.key()))
+        .collect(Collectors.toSet());
+      ComplianceCategoryRules rules = new ComplianceCategoryRules(filteredCategories);
       rulesByStandard.put(e.getKey(), rules);
     }
 
@@ -89,7 +81,7 @@ public class MetadataRules {
       }
       long sum = 0L;
       for (Map.Entry<RepositoryRuleKey, Long> countEntry : countByRepoRuleKey.entrySet()) {
-        if (categoryEntry.getValue().contains(countEntry.getKey())) {
+        if (categoryEntry.getValue().containsRuleAtLevel(countEntry.getKey(), null)) {
           sum += countEntry.getValue();
         }
       }
@@ -114,42 +106,7 @@ public class MetadataRules {
     Collection<ComplianceCategoryRules> rules = getRulesByStandard(activeFilters).values();
 
     return ruleKeys.stream()
-      .filter(ruleKey -> rules.stream().allMatch(r -> r.contains(ruleKey)))
+      .filter(ruleKey -> rules.stream().allMatch(r -> r.containsRuleAtLevel(ruleKey, null)))
       .collect(Collectors.toSet());
-  }
-
-  public record RepositoryRuleKey(String repository, String rule) {
-    @Override
-    public String toString() {
-      return repository + ":" + rule;
-    }
-
-    public static RepositoryRuleKey of(String ruleKey) {
-      int pos = ruleKey.indexOf(':');
-      String repo = ruleKey.substring(0, pos);
-      String key = ruleKey.substring(pos + 1);
-      return new RepositoryRuleKey(repo, key);
-    }
-  }
-
-  public record ComplianceCategoryRules(
-    // fully specified rules, such as "java:S001"
-    Set<RepositoryRuleKey> repoRuleKeys,
-    // rule wildcards, such as "S001"
-    Set<String> ruleKeys
-  ) {
-
-    public boolean contains(String ruleKey) {
-      RepositoryRuleKey repoRuleKey = RepositoryRuleKey.of(ruleKey);
-      return contains(repoRuleKey);
-    }
-
-    public boolean contains(RepositoryRuleKey repoRuleKey) {
-      return ruleKeys.contains(repoRuleKey.rule()) || repoRuleKeys.contains(repoRuleKey);
-    }
-
-    public boolean isEmpty() {
-      return ruleKeys.isEmpty() && repoRuleKeys.isEmpty();
-    }
   }
 }

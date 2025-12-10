@@ -37,11 +37,11 @@ class MetadataLoaderTest {
     void shouldLoadMetadata() {
       MetadataType metadataType = () -> "TestMetadata.yml";
       MetadataLoader metaDataLoader = new MetadataLoader(Set.of(metadataType));
-      Map<ReportKey, RuleBuckets> metadata = metaDataLoader.getAllMetadata();
+      Map<ReportKey, CategoryTree> metadata = metaDataLoader.getAllMetadata();
 
       assertThat(metadata)
         .hasEntrySatisfying(new ReportKey("test", "V1"), buckets -> {
-          assertThat(buckets.getBuckets()).hasSize(3);
+          assertThat(buckets.getChildren()).hasSize(3);
         });
     }
 

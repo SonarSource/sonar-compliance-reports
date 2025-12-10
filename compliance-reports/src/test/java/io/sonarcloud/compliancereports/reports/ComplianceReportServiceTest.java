@@ -8,7 +8,7 @@ package io.sonarcloud.compliancereports.reports;
 import io.sonarcloud.compliancereports.dao.ActiveRuleDao;
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
-import io.sonarcloud.compliancereports.reports.RuleBuckets.RuleBucket;
+import io.sonarcloud.compliancereports.reports.CategoryTree.CategoryTreeNode;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,7 +32,7 @@ class ComplianceReportServiceTest {
   private final ActiveRuleDao activeRuleDao = mock();
   private final MetadataLoader metadataLoader = mock();
   private final MetadataRules metadataRules = new MetadataRules(metadataLoader);
-  private final Map<ReportKey, RuleBuckets> metadataMap = new HashMap<>();
+  private final Map<ReportKey, CategoryTree> metadataMap = new HashMap<>();
   private final ComplianceReportService underTest = new ComplianceReportService(issueStatsByRuleKeyDao, activeRuleDao, metadataRules);
 
   @BeforeEach
@@ -43,11 +43,11 @@ class ComplianceReportServiceTest {
   @Test
   void whenGetComplianceReport_shouldReturnReportWithCorrectData() {
     setupMetadata(List.of(
-      new RuleBucket("a1", Set.of("java:1", "java:2", "java:3", "java:4", "java:5")),
-      new RuleBucket("a2", Set.of("java:6", "java:7", "java:8", "java:9", "java:10")),
-      new RuleBucket("a3", Set.of("java:11", "java:12", "java:13", "java:14", "java:15")),
-      new RuleBucket("a4", Set.of("java:16", "java:17", "java:18", "java:19", "java:20")),
-      new RuleBucket("a5", Set.of("java:21", "java:22", "java:23", "java:24", "java:25"))
+      new CategoryTreeNode("a1", Set.of("java:1", "java:2", "java:3", "java:4", "java:5"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a2", Set.of("java:6", "java:7", "java:8", "java:9", "java:10"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a3", Set.of("java:11", "java:12", "java:13", "java:14", "java:15"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a4", Set.of("java:16", "java:17", "java:18", "java:19", "java:20"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a5", Set.of("java:21", "java:22", "java:23", "java:24", "java:25"), Set.of(), null, false, 0)
     ));
 
     setupIssueStats(List.of(
@@ -75,15 +75,15 @@ class ComplianceReportServiceTest {
   @Test
   void whenGetComplianceReportWithCwe_shouldReturnReportWithCorrectData() {
     setupMetadata(List.of(
-      new RuleBucket("a1", Set.of("java:1", "java:2", "java:3")),
-      new RuleBucket("a2", Set.of("java:4", "java:5", "java:6")),
-      new RuleBucket("a3", Set.of("java:7", "java:8", "java:9"))
+      new CategoryTreeNode("a1", Set.of("java:1", "java:2", "java:3"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a2", Set.of("java:4", "java:5", "java:6"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a3", Set.of("java:7", "java:8", "java:9"), Set.of(), null, false, 0)
     ));
     ReportKey cweReport = new ReportKey("cwe", "v1");
     setupMetadata(cweReport, List.of(
-      new RuleBucket("cwe-1", Set.of("java:1", "java:4", "java:7")),
-      new RuleBucket("cwe-2", Set.of("java:1", "java:2")),
-      new RuleBucket("cwe-3", Set.of("java:1", "java:4", "java:8"))
+      new CategoryTreeNode("cwe-1", Set.of("java:1", "java:4", "java:7"), Set.of(), null, false, 0),
+      new CategoryTreeNode("cwe-2", Set.of("java:1", "java:2"), Set.of(), null, false, 0),
+      new CategoryTreeNode("cwe-3", Set.of("java:1", "java:4", "java:8"), Set.of(), null, false, 0)
     ));
 
     setupIssueStats(List.of(
@@ -96,7 +96,7 @@ class ComplianceReportServiceTest {
 
     setupActiveRules(Set.of("java:1", "java:2", "java:4", "java:7", "java:9"));
 
-    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, cweReport);
+    var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, cweReport, null);
 
     assertThat(report)
       .containsOnly(
@@ -117,10 +117,89 @@ class ComplianceReportServiceTest {
   }
 
   @Test
+  void whenGetComplianceReportWithLevels_shouldReturnReportWithCorrectData() {
+    setupMetadata(List.of(
+      new CategoryTreeNode("cat1", Set.of(), Set.of(
+        new CategoryTreeNode("cat1.1", Set.of("java:9"), Set.of(), 0, true, 3),
+        new CategoryTreeNode("cat1.2", Set.of("java:1"), Set.of(), 1, true, 3),
+        new CategoryTreeNode("cat1.3", Set.of("java:4"), Set.of(), 2, true, 3)
+      ), null, true, 3),
+      new CategoryTreeNode("cat2", Set.of(), Set.of(
+        new CategoryTreeNode("cat2.2", Set.of(), Set.of(
+          new CategoryTreeNode("cat2.2.1", Set.of("java:9"), Set.of(), 0, true, 3),
+          new CategoryTreeNode("cat2.2.2", Set.of("java:9", "java:1"), Set.of(), 2, true, 3)
+        ), null, true, 3)
+      ), null, true, 3)
+    ));
+
+    setupIssueStats(List.of(
+      new IssueStats("java:1", 100, 3, 3, 0, 0),
+      new IssueStats("java:2", 1, 1, 1, 3, 7),
+      new IssueStats("java:4", 20, 1, 1, 5, 5),
+      new IssueStats("java:7", 30, 2, 2, 5, 5),
+      new IssueStats("java:9", 3, 2, 1, 7, 3)
+    ));
+
+    setupActiveRules(Set.of("java:1", "java:2", "java:4", "java:7", "java:9"));
+
+    var reportLevel1 = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, null, 0);
+    var reportLevel2 = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, null, 1);
+    var reportLevel3 = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY, null, 2);
+
+    assertThat(reportLevel1)
+      .containsOnly(
+        new CategoryStats("cat1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1,
+          List.of(
+            new CategoryStats("cat1.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat1.2", 0, 0, 0, 1, 1, Map.of(), Map.of(), 1, 0, List.of()),
+            new CategoryStats("cat1.3", 0, 0, 0, 1, 1, Map.of(), Map.of(), 1, 0, List.of()))
+        ),
+        new CategoryStats("cat2", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of(
+          new CategoryStats("cat2.2", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1,3 ), 4, 1, List.of(
+            new CategoryStats("cat2.2.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat2.2.2", 0, 0, 0, 1, 1, Map.of(), Map.of(), 1, 0, List.of())
+          )))
+        )
+      );
+
+    assertThat(reportLevel2)
+      .containsOnly(
+        new CategoryStats("cat1", 103, 7, 3, 3, 3, Map.of(2, 3, 3, 100), Map.of(1, 3, 3, 100), 4, 2,
+          List.of(
+            new CategoryStats("cat1.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat1.2", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of()),
+            new CategoryStats("cat1.3", 0, 0, 0, 1, 1, Map.of(), Map.of(), 1, 0, List.of()))
+        ),
+        new CategoryStats("cat2", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of(
+          new CategoryStats("cat2.2", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1,3 ), 4, 1, List.of(
+            new CategoryStats("cat2.2.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat2.2.2", 0, 0, 0, 1, 1, Map.of(), Map.of(), 1, 0, List.of())
+          )))
+        )
+      );
+
+    assertThat(reportLevel3)
+      .containsOnly(
+        new CategoryStats("cat1", 123, 12, 8, 3, 3, Map.of(2, 3, 3, 100, 1, 20), Map.of(1, 23, 3, 100), 4, 3,
+          List.of(
+            new CategoryStats("cat1.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat1.2", 100, 0, 0, 3, 3, Map.of(3, 100), Map.of(3, 100), 1, 1, List.of()),
+            new CategoryStats("cat1.3", 20, 5, 5, 1, 1, Map.of(1, 20), Map.of(1, 20), 3, 1, List.of()))
+        ),
+        new CategoryStats("cat2", 103, 7, 3, 3, 3, Map.of(2, 3, 3, 100), Map.of(1,3, 3, 100), 4, 2, List.of(
+          new CategoryStats("cat2.2", 103, 7, 3, 3, 3, Map.of(2, 3, 3, 100), Map.of(1,3, 3, 100), 4, 2, List.of(
+            new CategoryStats("cat2.2.1", 3, 7, 3, 2, 1, Map.of(2, 3), Map.of(1, 3), 4, 1, List.of()),
+            new CategoryStats("cat2.2.2", 103, 7, 3, 3, 3, Map.of(2, 3, 3, 100), Map.of(1, 3, 3, 100), 4, 2, List.of())
+          )))
+        )
+      );
+  }
+
+  @Test
   void whenGetComplianceReport_shouldReturnReportWithCategoryMatchesWildcardRules() {
     setupMetadata(List.of(
-      new RuleBucket("a1", Set.of(":S1", "java:S1")),
-      new RuleBucket("a2", Set.of("java:S2"))
+      new CategoryTreeNode("a1", Set.of(":S1", "java:S1"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a2", Set.of("java:S2"), Set.of(), null, false, 0)
     ));
 
     setupIssueStats(List.of(
@@ -142,7 +221,7 @@ class ComplianceReportServiceTest {
 
   @Test
   void whenGetComplianceReport_shouldNotDoubleCountWithOverlappingConcreteAndWildcardRules() {
-    setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:S1"))));
+    setupMetadata(List.of(new CategoryTreeNode("a1", Set.of(":S1", "java:S1"), Set.of(), null, false, 0)));
 
     setupIssueStats(List.of(new IssueStats("java:S1", 100, 3, 3, 0, 0)));
 
@@ -157,7 +236,7 @@ class ComplianceReportServiceTest {
 
   @Test
   void whenGetComplianceReport_shouldHandleMultipleColonsInIssueStatsRuleKeys() {
-    setupMetadata(List.of(new RuleBucket("a1", Set.of(":S1", "java:security:S1"))));
+    setupMetadata(List.of(new CategoryTreeNode("a1", Set.of(":S1", "java:security:S1"), Set.of(), null, false, 0)));
 
     setupIssueStats(List.of(new IssueStats("java:security:S1", 100, 3, 3, 0, 0)));
 
@@ -170,13 +249,13 @@ class ComplianceReportServiceTest {
     );
   }
 
-  private void setupMetadata(List<RuleBucket> buckets) {
+  private void setupMetadata(List<CategoryTreeNode> buckets) {
     setupMetadata(REPORT_KEY, buckets);
   }
 
-  private void setupMetadata(ReportKey reportKey, List<RuleBucket> buckets) {
-    RuleBuckets ruleBuckets = mock();
-    when(ruleBuckets.getBuckets()).thenReturn(new LinkedHashSet<>(buckets));
+  private void setupMetadata(ReportKey reportKey, List<CategoryTreeNode> buckets) {
+    CategoryTree ruleBuckets = mock();
+    when(ruleBuckets.getChildren()).thenReturn(new LinkedHashSet<>(buckets));
     metadataMap.put(reportKey, ruleBuckets);
   }
 

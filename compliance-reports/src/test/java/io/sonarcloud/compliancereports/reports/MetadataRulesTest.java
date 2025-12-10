@@ -5,19 +5,18 @@
  */
 package io.sonarcloud.compliancereports.reports;
 
-import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
-import io.sonarcloud.compliancereports.reports.MetadataRules.RepositoryRuleKey;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
+import static io.sonarcloud.compliancereports.reports.RepositoryRuleKey.of;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MetadataRulesTest {
   private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(
-    () -> "TestMetadata.yml", () -> "TestMetadata2.yml"));
+    () -> "TestMetadata.yml", () -> "TestMetadata2.yml", () -> "MetadataWithInclusiveLevels.yml"));
   private final MetadataRules metadataRules = new MetadataRules(metaDataLoader);
 
   @Test
@@ -31,16 +30,16 @@ class MetadataRulesTest {
     ReportKey reportKey = new ReportKey("test", "V1");
     Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1")));
     assertThat(rules).containsOnlyKeys(reportKey);
-    assertThat(rules.get(reportKey).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.get(reportKey).ruleKeys()).containsOnly("2", "3");
+    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).allRuleKeys()).containsOnly("2", "3");
   }
 
   @Test
   void getRulesByStandard_returns_rules_and_wildcards_for_multiple_categories() {
     ReportKey reportKey = new ReportKey("test", "V1");
     Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1", "category2")));
-    assertThat(rules.get(reportKey).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.get(reportKey).ruleKeys()).containsOnly("1", "2", "3");
+    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).allRuleKeys()).containsOnly("1", "2", "3");
   }
 
   @Test
@@ -55,11 +54,11 @@ class MetadataRulesTest {
 
     assertThat(rules).containsOnlyKeys(reportKey1, reportKey2);
 
-    assertThat(rules.get(reportKey1).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.get(reportKey1).ruleKeys()).containsOnly("1", "2", "3");
+    assertThat(rules.get(reportKey1).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey1).allRuleKeys()).containsOnly("1", "2", "3");
 
-    assertThat(rules.get(reportKey2).repoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
-    assertThat(rules.get(reportKey2).ruleKeys()).isEmpty();
+    assertThat(rules.get(reportKey2).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey2).allRuleKeys()).isEmpty();
   }
 
   @Test
@@ -100,5 +99,66 @@ class MetadataRulesTest {
     );
     Set<String> filteredRuleKeys = metadataRules.applyComplianceFiltersToFacet(ruleKeys, reportKey1, filters);
     assertThat(filteredRuleKeys).containsOnly("java:S001", "java:3");
+  }
+
+  @Test
+  void nested_categories_should_produce_aggregated_rules_map() {
+    ReportKey reportKey = new ReportKey("levels-test", "A");
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(reportKey);
+    var cat1Rules = complianceCategoryRulesMap.get("cat1");
+    var cat12Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.2");
+    var cat133Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.3").getChildren().get("cat1.3.3");
+
+    // a category should contain all rules for all levels for itself and its children
+
+    // category 1
+    assertThat(cat1Rules.allRepoRuleKeys()).containsOnly(of("java:1"), of("java:2"), of("java:3"), of("java:6"), of("java:9"), of("java:21"),
+      of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:111"),
+      of("java:222"), of("java:333"));
+    assertThat(cat1Rules.allRuleKeys()).containsOnly("14", "41", "64", "62", "1", "11", "12", "13");
+    assertThat(cat1Rules.getRepoRuleKeysByLevel())
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102")))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"),
+        of("java:9")))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"),
+        of("java:9"), of("java:111"), of("java:222"), of("java:333")));
+    assertThat(cat1Rules.getRuleKeysByLevel())
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1", "14", "41", "64"));
+
+    // category 1.2
+    assertThat(cat12Rules.allRepoRuleKeys()).containsOnly(of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"));
+    assertThat(cat12Rules.allRuleKeys()).containsOnly("62", "1");
+    assertThat(cat12Rules.getRepoRuleKeysByLevel())
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
+        of("java:99")))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
+        of("java:99")))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
+        of("java:99")));
+    assertThat(cat12Rules.getRuleKeysByLevel())
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"));
+
+    // category 1.3.3
+    assertThat(cat133Rules.allRepoRuleKeys()).isEmpty();
+    assertThat(cat133Rules.allRuleKeys()).containsOnly("11", "12", "13");
+    assertThat(cat133Rules.getRepoRuleKeysByLevel()).isEmpty();
+    assertThat(cat133Rules.getRuleKeysByLevel()).isEmpty();
+  }
+
+  @Test
+  void checking_for_an_invalid_level_should_return_false() {
+    ReportKey reportKey = new ReportKey("levels-test", "A");
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(reportKey);
+    var cat1Rules = complianceCategoryRulesMap.get("cat1");
+
+    assertThat(cat1Rules.containsRuleAtLevel("java:1", -1)).isFalse();
+    assertThat(cat1Rules.containsRuleAtLevel("java:1", 5)).isFalse();
   }
 }

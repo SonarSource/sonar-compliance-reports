@@ -25,7 +25,6 @@ class AggregateCategoryStats {
   private final Map<Integer, Integer> ratingDistribution = new HashMap<>();
   private final Map<Integer, Integer> mqrRatingDistribution = new HashMap<>();
 
-
   public void add(IssueStats issueStats) {
     addOpenIssues(issueStats.issueCount());
     addToReviewHotspots(issueStats.hotspotCount());

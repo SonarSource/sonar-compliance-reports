@@ -21,7 +21,7 @@ import org.yaml.snakeyaml.Yaml;
 public class MetadataLoader {
 
   private static final String METADATA_RESOURCE_DIR = "metadata/";
-  private final Map<ReportKey, RuleBuckets> allMetadata;
+  private final Map<ReportKey, CategoryTree> allMetadata;
   private final ObjectMapper objectMapper = new ObjectMapper()
       .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   private final Yaml yaml;
@@ -34,8 +34,8 @@ public class MetadataLoader {
     allMetadata = metadataTypes.stream()
       .map(metadataType -> parseMetadata(metadataType).report())
       // produce buckets for each version in the report
-      .flatMap(parsed -> parsed.versions().stream().map(version -> new RuleBuckets(parsed.key(), version)))
-      .collect(Collectors.toMap(RuleBuckets::getKey, Function.identity()));
+      .flatMap(parsed -> parsed.versions().stream().map(version -> new CategoryTree(parsed.key(), version, parsed.levels())))
+      .collect(Collectors.toMap(CategoryTree::getKey, Function.identity()));
   }
 
   private ReportMetadataSchema parseMetadata(MetadataType type) {
@@ -51,7 +51,7 @@ public class MetadataLoader {
     }
   }
 
-  public Map<ReportKey, RuleBuckets> getAllMetadata() {
+  public Map<ReportKey, CategoryTree> getAllMetadata() {
     return allMetadata;
   }
 

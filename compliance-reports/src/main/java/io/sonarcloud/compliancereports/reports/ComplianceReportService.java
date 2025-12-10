@@ -9,8 +9,9 @@ import io.sonarcloud.compliancereports.dao.ActiveRuleDao;
 import io.sonarcloud.compliancereports.dao.AggregationType;
 import io.sonarcloud.compliancereports.dao.IssueStats;
 import io.sonarcloud.compliancereports.dao.IssueStatsByRuleKeyDao;
-import io.sonarcloud.compliancereports.reports.MetadataRules.ComplianceCategoryRules;
 import jakarta.inject.Singleton;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -31,25 +32,37 @@ public class ComplianceReportService {
   }
 
   public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard) {
-    return getComplianceReport(aggregationId, aggregationType, standard, null);
+    return getComplianceReport(aggregationId, aggregationType, standard, null, null);
   }
 
   public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard,
-    @Nullable ReportKey cweStandard) {
+    @Nullable ReportKey cweStandard, @Nullable Integer levelIndex) {
     Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRulesByCategory(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     List<IssueStats> issueStatsList = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType);
 
-    List<CategoryStats> report = new LinkedList<>();
+    return getCategoryStats(rulesByCategory, issueStatsList, activeRuleKeys, cweStandard, levelIndex);
+  }
 
+  private List<CategoryStats> getCategoryStats(Map<String, ComplianceCategoryRules> rulesByCategory,
+    List<IssueStats> issueStatsList, Set<String> activeRuleKeys, @Nullable ReportKey cweStandard, @Nullable Integer levelIndex) {
+    List<CategoryStats> results = new ArrayList<>();
     for (Map.Entry<String, ComplianceCategoryRules> e : rulesByCategory.entrySet()) {
+      String categoryKey = e.getKey();
       ComplianceCategoryRules categoryRules = e.getValue();
-      List<IssueStats> matchingIssueStats = issueStatsList.stream().filter(s -> categoryRules.contains(s.ruleKey())).toList();
-      List<CategoryStats> cweCategoryStats = getCweCategoryStats(matchingIssueStats, cweStandard, activeRuleKeys);
-      report.add(aggregateCategoryStats(e.getKey(), matchingIssueStats, activeRuleKeys, cweCategoryStats));
+      List<IssueStats> matchingIssueStats = issueStatsList.stream().filter(s -> categoryRules.containsRuleAtLevel(s.ruleKey(), levelIndex)).toList();
+      if (cweStandard != null) {
+        List<CategoryStats> cweCategoryStats = getCweCategoryStats(matchingIssueStats, cweStandard, activeRuleKeys);
+        results.add(aggregateCategoryStats(categoryKey, matchingIssueStats, activeRuleKeys, cweCategoryStats));
+      } else {
+        var children = getCategoryStats(categoryRules.getChildren(), issueStatsList, activeRuleKeys, null, levelIndex).stream()
+          // TODO: Sort by ordinal once this is fully supported in the metadata
+          .sorted(Comparator.comparing(CategoryStats::categoryName))
+          .toList();
+        results.add(aggregateCategoryStats(categoryKey, matchingIssueStats, activeRuleKeys, children));
+      }
     }
-
-    return report;
+    return results;
   }
 
   private List<CategoryStats> getCweCategoryStats(List<IssueStats> matchingIssueStats, @Nullable ReportKey cweStandard,
@@ -62,7 +75,7 @@ public class ComplianceReportService {
 
     for (Map.Entry<String, ComplianceCategoryRules> e : cweRulesByCategory.entrySet()) {
       ComplianceCategoryRules cweCategoryRules = e.getValue();
-      List<IssueStats> cweIssueStats = matchingIssueStats.stream().filter(s -> cweCategoryRules.contains(s.ruleKey())).toList();
+      List<IssueStats> cweIssueStats = matchingIssueStats.stream().filter(s -> cweCategoryRules.containsRuleAtLevel(s.ruleKey(), null)).toList();
       if (!cweIssueStats.isEmpty()) {
         report.add(aggregateCategoryStats(e.getKey(), cweIssueStats, activeRules, List.of()));
       }
