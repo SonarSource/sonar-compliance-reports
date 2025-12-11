@@ -7,7 +7,6 @@ package io.sonarcloud.compliancereports.reports;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +33,7 @@ public class MetadataRules {
     return rulesPerCategory;
   }
 
-  private void putComplianceCategoryRulesIntoMap(CategoryTree.CategoryTreeNode categoryTreeNode, Map<String, ComplianceCategoryRules> rulesPerCategory) {
+  private static void putComplianceCategoryRulesIntoMap(CategoryTree.CategoryTreeNode categoryTreeNode, Map<String, ComplianceCategoryRules> rulesPerCategory) {
     var parent = new ComplianceCategoryRules(categoryTreeNode);
     rulesPerCategory.put(categoryTreeNode.key(), parent);
     for (var child : categoryTreeNode.children()) {

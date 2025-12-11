@@ -84,7 +84,7 @@ public class ComplianceReportService {
     return report;
   }
 
-  private CategoryStats aggregateCategoryStats(String category, List<IssueStats> matchingIssueStats, Set<String> activeRuleKeys,
+  private static CategoryStats aggregateCategoryStats(String category, List<IssueStats> matchingIssueStats, Set<String> activeRuleKeys,
     List<CategoryStats> children) {
     AggregateCategoryStats aggregate = new AggregateCategoryStats();
     for (IssueStats issueStats : matchingIssueStats) {

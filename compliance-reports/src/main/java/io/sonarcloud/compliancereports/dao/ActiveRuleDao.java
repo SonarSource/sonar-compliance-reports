@@ -6,7 +6,6 @@
 package io.sonarcloud.compliancereports.dao;
 
 import java.util.Set;
-import java.util.UUID;
 
 public interface ActiveRuleDao {
 

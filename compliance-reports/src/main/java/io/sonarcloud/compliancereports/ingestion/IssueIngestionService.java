@@ -33,7 +33,7 @@ public class IssueIngestionService {
     issueStatsByRuleKeyDao.deleteAndInsertIssueStats(aggregationId, aggregationType, issueStats);
   }
 
-  private List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {
+  private static List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {
     List<IssueStats> results = new ArrayList<>();
     Map<String, List<IssueFromAnalysis>> issuesByRuleKey = issueData.stream()
       .collect(Collectors.groupingBy(IssueFromAnalysis::ruleKey));
@@ -43,7 +43,7 @@ public class IssueIngestionService {
     return results;
   }
 
-  private IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
+  private static IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
     int issueCount = 0;
     int issueRating = 1;
     int issueMqrRating = 1;
