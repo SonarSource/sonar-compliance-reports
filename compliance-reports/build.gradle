@@ -31,17 +31,66 @@ if (version.endsWith('-SNAPSHOT') && ext.buildNumber != null) {
   version = version.replace('-SNAPSHOT', versionSuffix)
 }
 
-publishing {
-  publications {
-    service(MavenPublication) {
-      from components.java
-    }
+license {
+  header = file("$projectDir/HEADER")
+}
+
+tasks.withType(Javadoc) {
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.encoding = 'UTF-8'
+}
+
+tasks.register('sourcesJar', Jar) {
+  dependsOn classes
+  archiveClassifier = 'sources'
+  from sourceSets.main.allSource
+}
+
+tasks.register('javadocJar', Jar) {
+  dependsOn javadoc
+  archiveClassifier = 'javadoc'
+  from javadoc.destinationDir
+}
+
+tasks.withType(Jar).configureEach {
+  from('LICENSE') {
+    into('')
   }
 }
 
-artifactoryPublish {
-  skip = false
-  publications(publishing.publications.service)
+artifactoryPublish.skip = false
+
+publishing {
+  publications {
+    service(MavenPublication) {
+      artifactId = 'compliance-reports'
+      pom {
+        name = 'Compliance Reports'
+        description = project.description
+        url = 'https://www.sonarqube.org/'
+        organization {
+          name = 'SonarSource'
+          url = 'https://www.sonarsource.com/'
+        }
+        licenses {
+          license {
+            name = 'GNU LGPL 3'
+            url = 'https://www.gnu.org/licenses/lgpl-3.0.txt'
+            distribution = 'repo'
+          }
+        }
+        developers {
+          developer {
+            id = 'sonarsource-team'
+            name = 'SonarSource Team'
+          }
+        }
+      }
+      from components.java
+      artifact sourcesJar
+      artifact javadocJar
+    }
+  }
 }
 
 // publish a Java 17-compatible library
