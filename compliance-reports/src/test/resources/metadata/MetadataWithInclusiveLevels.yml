@@ -33,6 +33,7 @@ report:
                     - java:3
                     - java:6
                     - java:9
+                    - 'secrets:'
                 - name: cat1.1.3
                   level: high
                   rules:

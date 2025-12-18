@@ -130,6 +130,7 @@ class MetadataRulesTest {
       of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:111"),
       of("java:222"), of("java:333"));
     assertThat(cat1Rules.allRuleKeys()).containsOnly("14", "41", "64", "62", "1", "11", "12", "13");
+    assertThat(cat1Rules.allRepos()).containsExactly("secrets");
     assertThat(cat1Rules.getRepoRuleKeysByLevel())
       .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
         of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102")))
@@ -143,6 +144,9 @@ class MetadataRulesTest {
       .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
       .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
       .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1", "14", "41", "64"));
+    assertThat(cat1Rules.getReposByLevel())
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactly("secrets"))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactly("secrets"));
 
     // category 1.2
     assertThat(cat12Rules.allRepoRuleKeys()).containsOnly(of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"));
@@ -158,12 +162,14 @@ class MetadataRulesTest {
       .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
       .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
       .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"));
+    assertThat(cat12Rules.getReposByLevel()).isEmpty();
 
     // category 1.3.3
     assertThat(cat133Rules.allRepoRuleKeys()).isEmpty();
     assertThat(cat133Rules.allRuleKeys()).containsOnly("11", "12", "13");
     assertThat(cat133Rules.getRepoRuleKeysByLevel()).isEmpty();
     assertThat(cat133Rules.getRuleKeysByLevel()).isEmpty();
+    assertThat(cat133Rules.getReposByLevel()).isEmpty();
   }
 
   @Test

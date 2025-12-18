@@ -213,23 +213,26 @@ class ComplianceReportServiceTest {
   void whenGetComplianceReport_shouldReturnReportWithCategoryMatchesWildcardRules() {
     setupMetadata(List.of(
       new CategoryTreeNode("a1", Set.of(":S1", "java:S1"), Set.of(), null, false, 0),
-      new CategoryTreeNode("a2", Set.of("java:S2"), Set.of(), null, false, 0)
+      new CategoryTreeNode("a2", Set.of("java:S2"), Set.of(), null, false, 0),
+      new CategoryTreeNode("a3", Set.of("cpp:"), Set.of(), null, false ,0)
     ));
 
     setupIssueStats(List.of(
       new IssueStats("java:S1", 100, 3, 3, 0, 0),
       new IssueStats("cpp:S1", 100, 3, 3, 0, 0),
       new IssueStats("java:S2", 0, 1, 1, 3, 7),
-      new IssueStats("cpp:S2", 0, 1, 1, 3, 7)
+      new IssueStats("cpp:S2", 0, 1, 1, 3, 7),
+      new IssueStats("cpp:S3", 13, 1, 1, 0, 0)
     ));
 
-    setupActiveRules(Set.of("java:S1", "java:S2"));
+    setupActiveRules(Set.of("java:S1", "java:S2", "cpp:S3"));
 
     var report = underTest.getComplianceReport(PROJECT_ID, PROJECT, REPORT_KEY);
 
     assertThat(report).containsOnly(
       new CategoryStats("a1", 200, 0, 0, 3, 3, Map.of(3, 200), Map.of(3, 200), 1, 1, List.of()),
-      new CategoryStats("a2", 0, 3, 7, 1, 1, Map.of(1, 0), Map.of(1, 0), 2, 1, List.of())
+      new CategoryStats("a2", 0, 3, 7, 1, 1, Map.of(1, 0), Map.of(1, 0), 2, 1, List.of()),
+      new CategoryStats("a3", 113, 3, 7, 3, 3, Map.of(1, 13, 3, 100), Map.of(1, 13, 3, 100), 2, 1, List.of())
     );
   }
 

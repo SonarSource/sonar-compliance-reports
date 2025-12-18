@@ -33,6 +33,10 @@ public class ComplianceCategoryRules {
   private final Map<Integer, Set<RepositoryRuleKey>> repoRuleKeysByLevel = new HashMap<>();
   private final Set<RepositoryRuleKey> allRepoRuleKeys = new HashSet<>();
 
+  // repo wildcards, such as "secrets:"
+  private final Map<Integer, Set<String>> reposByLevel = new HashMap<>();
+  private final Set<String> allRepos = new HashSet<>();
+
   // rule wildcards, such as "S001"
   private final Map<Integer, Set<String>> ruleKeysByLevel = new HashMap<>();
   private final Set<String> allRuleKeys = new HashSet<>();
@@ -57,12 +61,15 @@ public class ComplianceCategoryRules {
 
   private void addRulesFromNode(CategoryTree.CategoryTreeNode categoryTreeNode) {
     for (String ruleKey : categoryTreeNode.ruleKeys()) {
-      if (!ruleKey.startsWith(":")) {
-        // repo:rule
-        addRepoRuleKey(categoryTreeNode, ruleKey);
-      } else {
+      if (ruleKey.startsWith(":")) {
         // :rule wildcard
         addRuleKey(categoryTreeNode, ruleKey);
+      } else if (ruleKey.endsWith(":")) {
+        // repo: wildcard
+        addRepo(categoryTreeNode, ruleKey);
+      } else {
+        // repo:rule
+        addRepoRuleKey(categoryTreeNode, ruleKey);
       }
     }
     for (CategoryTree.CategoryTreeNode child : categoryTreeNode.children()) {
@@ -71,30 +78,26 @@ public class ComplianceCategoryRules {
   }
 
   private void addRuleKey(CategoryTree.CategoryTreeNode categoryTreeNode, String ruleKey) {
-    String parsedRuleKey = ruleKey.substring(ruleKey.indexOf(":") + 1);
-    allRuleKeys.add(parsedRuleKey);
+    addToCollections(allRuleKeys, ruleKeysByLevel, categoryTreeNode, ruleKey.substring(ruleKey.indexOf(":") + 1));
+  }
 
-    if (categoryTreeNode.levelIndex() != null) {
-      for (int level = categoryTreeNode.levelIndex(); level < numberOfLevels; level++) {
-        ruleKeysByLevel
-          .computeIfAbsent(level, k -> new HashSet<>())
-          .add(parsedRuleKey);
-        if (!categoryTreeNode.levelsInclusive()) {
-          break;
-        }
-      }
-    }
+  private void addRepo(CategoryTree.CategoryTreeNode categoryTreeNode, String repo) {
+    addToCollections(allRepos, reposByLevel, categoryTreeNode, repo.substring(0, repo.indexOf(":")));
   }
 
   private void addRepoRuleKey(CategoryTree.CategoryTreeNode categoryTreeNode, String ruleKey) {
-    allRepoRuleKeys.add(RepositoryRuleKey.of(ruleKey));
+    addToCollections(allRepoRuleKeys, repoRuleKeysByLevel, categoryTreeNode, RepositoryRuleKey.of(ruleKey));
+  }
 
-    if (categoryTreeNode.levelIndex() != null) {
-      for (int level = categoryTreeNode.levelIndex(); level < numberOfLevels; level++) {
-        repoRuleKeysByLevel
+  private <T> void addToCollections(Set<T> collection, Map<Integer, Set<T>> collectionByLevel, CategoryTree.CategoryTreeNode node, T item) {
+    collection.add(item);
+
+    if (node.levelIndex() != null) {
+      for (int level = node.levelIndex(); level < numberOfLevels; level++) {
+        collectionByLevel
           .computeIfAbsent(level, k -> new HashSet<>())
-          .add(RepositoryRuleKey.of(ruleKey));
-        if (!categoryTreeNode.levelsInclusive()) {
+          .add(item);
+        if (!node.levelsInclusive()) {
           break;
         }
       }
@@ -109,9 +112,10 @@ public class ComplianceCategoryRules {
   public boolean containsRuleAtLevel(RepositoryRuleKey repoRuleKey, @Nullable Integer levelIndex) {
     if (levelIndex != null) {
       return ruleKeysByLevel.getOrDefault(levelIndex, Set.of()).contains(repoRuleKey.rule()) ||
+        reposByLevel.getOrDefault(levelIndex, Set.of()).contains(repoRuleKey.repository()) ||
         repoRuleKeysByLevel.getOrDefault(levelIndex, Set.of()).contains(repoRuleKey);
     }
-    return allRuleKeys.contains(repoRuleKey.rule()) || allRepoRuleKeys.contains(repoRuleKey);
+    return allRuleKeys.contains(repoRuleKey.rule()) || allRepos.contains(repoRuleKey.repository()) || allRepoRuleKeys.contains(repoRuleKey);
   }
 
   public Map<String, ComplianceCategoryRules> getChildren() {
@@ -126,12 +130,20 @@ public class ComplianceCategoryRules {
     return allRuleKeys;
   }
 
+  public Set<String> allRepos() {
+    return allRepos;
+  }
+
   public Map<Integer, Set<RepositoryRuleKey>> getRepoRuleKeysByLevel() {
     return repoRuleKeysByLevel;
   }
 
   public Map<Integer, Set<String>> getRuleKeysByLevel() {
     return ruleKeysByLevel;
+  }
+
+  public Map<Integer, Set<String>> getReposByLevel() {
+    return reposByLevel;
   }
 
   public boolean isEmpty() {
