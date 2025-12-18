@@ -79,6 +79,9 @@ publishing {
             distribution = 'repo'
           }
         }
+        scm {
+          url = 'https://github.com/SonarSource/sonarcloud-software-quality-reports'
+        }
         developers {
           developer {
             id = 'sonarsource-team'
