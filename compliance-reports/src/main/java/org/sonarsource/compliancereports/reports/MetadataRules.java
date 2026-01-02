@@ -24,11 +24,17 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.sonarsource.compliancereports.reports.CategoryTree.CategoryTreeNode;
+
+import static org.sonarsource.compliancereports.reports.ComplianceCategoryRules.getCategoryNameToRulesInOrder;
 
 public class MetadataRules {
   private final MetadataLoader metadataLoader;
+  private final Map<ReportKey, Map<String, ComplianceCategoryRules>> rulesByCategoryCache = new ConcurrentHashMap<>();
 
   public MetadataRules(MetadataLoader metadataLoader) {
     this.metadataLoader = metadataLoader;
@@ -39,19 +45,23 @@ public class MetadataRules {
    * If a category has no rules associated with it, it's still returned in the map
    */
   public Map<String, ComplianceCategoryRules> getRulesByCategory(ReportKey standard) {
-    Map<String, ComplianceCategoryRules> rulesPerCategory = new LinkedHashMap<>();
-
-    for (CategoryTree.CategoryTreeNode categoryTreeNode : metadataLoader.getAllMetadata().get(standard).getChildren()) {
-      putComplianceCategoryRulesIntoMap(categoryTreeNode, rulesPerCategory);
-    }
-    return rulesPerCategory;
+    return rulesByCategoryCache.computeIfAbsent(standard, this::computeRulesByCategory);
   }
 
-  private static void putComplianceCategoryRulesIntoMap(CategoryTree.CategoryTreeNode categoryTreeNode, Map<String, ComplianceCategoryRules> rulesPerCategory) {
+  private Map<String, ComplianceCategoryRules> computeRulesByCategory(ReportKey standard) {
+    Map<CategoryTreeNode, ComplianceCategoryRules> rulesPerCategory = new TreeMap<>(CategoryTree::categoryCompareTo);
+
+    for (CategoryTreeNode categoryTreeNode : metadataLoader.getAllMetadata().get(standard).getChildren()) {
+      putComplianceCategoryRulesIntoMap(categoryTreeNode, rulesPerCategory);
+    }
+    return getCategoryNameToRulesInOrder(rulesPerCategory);
+  }
+
+  private static void putComplianceCategoryRulesIntoMap(CategoryTreeNode categoryTreeNode, Map<CategoryTreeNode, ComplianceCategoryRules> rulesPerCategory) {
     var parent = new ComplianceCategoryRules(categoryTreeNode);
-    rulesPerCategory.put(categoryTreeNode.key(), parent);
+    rulesPerCategory.put(categoryTreeNode, parent);
     for (var child : categoryTreeNode.children()) {
-      putComplianceCategoryRulesIntoMap(child, parent.getChildren());
+      putComplianceCategoryRulesIntoMap(child, parent.getChildrenByNode());
     }
   }
 

@@ -21,8 +21,11 @@ package org.sonarsource.compliancereports.reports;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -41,7 +44,7 @@ public class ComplianceCategoryRules {
   private final Map<Integer, Set<String>> ruleKeysByLevel = new HashMap<>();
   private final Set<String> allRuleKeys = new HashSet<>();
 
-  private final Map<String, ComplianceCategoryRules> children = new HashMap<>();
+  private final Map<CategoryTree.CategoryTreeNode, ComplianceCategoryRules> children = new TreeMap<>(CategoryTree::categoryCompareTo);
   private final int numberOfLevels;
 
   public ComplianceCategoryRules(CategoryTree.CategoryTreeNode categoryTreeNode) {
@@ -119,6 +122,10 @@ public class ComplianceCategoryRules {
   }
 
   public Map<String, ComplianceCategoryRules> getChildren() {
+    return getCategoryNameToRulesInOrder(children);
+  }
+
+  protected Map<CategoryTree.CategoryTreeNode, ComplianceCategoryRules> getChildrenByNode() {
     return children;
   }
 
@@ -148,5 +155,14 @@ public class ComplianceCategoryRules {
 
   public boolean isEmpty() {
     return allRuleKeys.isEmpty() && allRepoRuleKeys.isEmpty() && allRepos.isEmpty();
+  }
+
+  static Map<String, ComplianceCategoryRules> getCategoryNameToRulesInOrder(Map<CategoryTree.CategoryTreeNode, ComplianceCategoryRules> rulesPerCategoryNodes) {
+    // Use LinkedHashMap to preserve order from the already sorted input map
+    return rulesPerCategoryNodes.entrySet().stream()
+      .collect(Collectors.toMap(e -> e.getKey().key(),
+        Map.Entry::getValue,
+        (a, b) -> a,
+        LinkedHashMap::new));
   }
 }

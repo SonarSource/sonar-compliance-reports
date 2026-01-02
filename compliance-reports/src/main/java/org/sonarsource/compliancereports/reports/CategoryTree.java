@@ -19,11 +19,11 @@
  */
 package org.sonarsource.compliancereports.reports;
 
-import org.sonarsource.compliancereports.reports.metadata.ReportMetadataSchema;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.sonarsource.compliancereports.reports.metadata.ReportMetadataSchema;
 
 /**
  * Represents the parsed metadata for a single report (standard + version)
@@ -36,7 +36,7 @@ public class CategoryTree {
   private final ReportMetadataSchema.Report.Levels levels;
 
   public record CategoryTreeNode(String key, Set<String> ruleKeys, Set<CategoryTreeNode> children, @Nullable Integer levelIndex,
-    boolean levelsInclusive, int numberOfLevels) {}
+    boolean levelsInclusive, int numberOfLevels, @Nullable Integer ordinal) {}
 
   public CategoryTree(String standardKey, ReportMetadataSchema.Report.Version version, @Nullable ReportMetadataSchema.Report.Levels levels) {
     this.key = new ReportKey(standardKey, version.key());
@@ -69,7 +69,7 @@ public class CategoryTree {
       levelsInclusive = levels.inclusive();
     }
 
-    return new CategoryTreeNode(category.name(), rules, subnodes, levelIndex, levelsInclusive, levels == null ? 0 : levels.values().size());
+    return new CategoryTreeNode(category.name(), rules, subnodes, levelIndex, levelsInclusive, levels == null ? 0 : levels.values().size(), category.ordinal());
   }
 
   /**
@@ -82,5 +82,16 @@ public class CategoryTree {
 
   public ReportKey getKey() {
     return key;
+  }
+
+  public static int categoryCompareTo(CategoryTreeNode a, CategoryTreeNode b) {
+    // If both categories have ordinals, sort by ordinal
+    Integer aOrdinal = a.ordinal();
+    Integer bOrdinal = b.ordinal();
+    if (aOrdinal != null && bOrdinal != null) {
+      return Integer.compare(aOrdinal, bOrdinal);
+    }
+    // Otherwise, sort by name
+    return a.key().compareToIgnoreCase(b.key());
   }
 }

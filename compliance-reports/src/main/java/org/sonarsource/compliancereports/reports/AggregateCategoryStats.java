@@ -19,10 +19,10 @@
  */
 package org.sonarsource.compliancereports.reports;
 
-import org.sonarsource.compliancereports.dao.IssueStats;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sonarsource.compliancereports.dao.IssueStats;
 
 /**
  * Mutable accumulator for aggregating category statistics.

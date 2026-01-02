@@ -1,0 +1,45 @@
+report:
+  key: test-ordinals
+  versions:
+    - name: 1
+      key: V1
+      categories:
+        - name: category1
+          rules:
+            - java:S001
+            - :2
+            - :3
+          ordinal: 3
+        - name: category2
+          rules:
+            - :1
+            - :2
+            - :3
+          ordinal: 2
+        - name: category3
+          rules:
+            - :1
+            - :2
+            - :3
+          ordinal: 1
+          subcategories:
+            - name: cat3.1
+              level: low
+              rules:
+                - :1
+                - :2
+                - :3
+              ordinal: 1
+        - name: category4withsubcategorythatsharesanothername
+          rules:
+            - :1
+            - :2
+            - :3
+          ordinal: 4
+          subcategories:
+            - name: category1
+              rules:
+                - java:S002
+                - :4
+                - :5
+              ordinal: 6

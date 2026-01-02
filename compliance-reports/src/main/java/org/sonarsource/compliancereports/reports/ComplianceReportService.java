@@ -21,7 +21,6 @@ package org.sonarsource.compliancereports.reports;
 
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -70,8 +69,6 @@ public class ComplianceReportService {
         results.add(aggregateCategoryStats(categoryKey, matchingIssueStats, activeRuleKeys, cweCategoryStats));
       } else {
         var children = getCategoryStats(categoryRules.getChildren(), issueStatsList, activeRuleKeys, null, levelIndex).stream()
-          // TODO: Sort by ordinal once this is fully supported in the metadata
-          .sorted(Comparator.comparing(CategoryStats::categoryName))
           .toList();
         results.add(aggregateCategoryStats(categoryKey, matchingIssueStats, activeRuleKeys, children));
       }

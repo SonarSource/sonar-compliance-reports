@@ -79,7 +79,8 @@ public record ReportMetadataSchema(Report report) {
       @Nullable String level,
       @Nullable List<ReportUrl> urls,
       @Nullable Set<String> rules,
-      @Nullable List<Category> subcategories
+      @Nullable List<Category> subcategories,
+      @Nullable Integer ordinal
     ) {}
   }
 }
