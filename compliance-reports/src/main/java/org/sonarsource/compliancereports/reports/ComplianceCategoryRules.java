@@ -147,6 +147,6 @@ public class ComplianceCategoryRules {
   }
 
   public boolean isEmpty() {
-    return allRuleKeys.isEmpty() && allRepoRuleKeys.isEmpty();
+    return allRuleKeys.isEmpty() && allRepoRuleKeys.isEmpty() && allRepos.isEmpty();
   }
 }

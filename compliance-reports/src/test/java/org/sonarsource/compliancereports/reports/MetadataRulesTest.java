@@ -30,7 +30,7 @@ import static org.sonarsource.compliancereports.reports.RepositoryRuleKey.of;
 
 class MetadataRulesTest {
   private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(
-    () -> "TestMetadata.yml", () -> "TestMetadata2.yml", () -> "MetadataWithInclusiveLevels.yml"));
+    () -> "TestMetadata.yml", () -> "TestMetadata2.yml", () -> "MetadataWithInclusiveLevels.yml", () -> "TestMetadataWithWildcards.yml"));
   private final MetadataRules metadataRules = new MetadataRules(metaDataLoader);
 
   @Test
@@ -99,6 +99,20 @@ class MetadataRulesTest {
   }
 
   @Test
+  void getRuleCountByStandardCategory_return_count_for_wildcard_repo() {
+    ReportKey reportKey = new ReportKey("test-wildcard-repos", "WithWildcardReposVersion1");
+    Map<String, Long> ruleCountByStandardCategory = metadataRules.getRuleCountByStandardCategory(reportKey, Map.of("secrets:Y1", 5L, "java:S001", 2L));
+    assertThat(ruleCountByStandardCategory).containsOnly(entry("category1withsecretrules", 5L));
+  }
+
+  @Test
+  void getRuleCountByStandardCategory_return_zero_with_no_wildcards_at_all() {
+    ReportKey reportKey = new ReportKey("test-wildcard-repos", "WithNoWildcardsVersion2");
+    Map<String, Long> ruleCountByStandardCategory = metadataRules.getRuleCountByStandardCategory(reportKey, Map.of());
+    assertThat(ruleCountByStandardCategory).containsOnly(entry("category2withnowildcards", 0L));
+  }
+
+  @Test
   void applyComplianceFiltersToFacet_applies_other_filters() {
     ReportKey reportKey1 = new ReportKey("test", "V1");
     ReportKey reportKey2 = new ReportKey("test", "V2");
@@ -116,55 +130,75 @@ class MetadataRulesTest {
   }
 
   @Test
-  void nested_categories_should_produce_aggregated_rules_map() {
-    ReportKey reportKey = new ReportKey("levels-test", "A");
-    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(reportKey);
+  void nested_categories_should_aggregate_all_rules_from_children() {
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(new ReportKey("levels-test", "A"));
     var cat1Rules = complianceCategoryRulesMap.get("cat1");
-    var cat12Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.2");
-    var cat133Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.3").getChildren().get("cat1.3.3");
 
-    // a category should contain all rules for all levels for itself and its children
-
-    // category 1
-    assertThat(cat1Rules.allRepoRuleKeys()).containsOnly(of("java:1"), of("java:2"), of("java:3"), of("java:6"), of("java:9"), of("java:21"),
-      of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:111"),
-      of("java:222"), of("java:333"));
+    assertThat(cat1Rules.allRepoRuleKeys()).containsOnly(
+      of("java:1"), of("java:2"), of("java:3"), of("java:6"), of("java:9"), of("java:21"),
+      of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"),
+      of("java:102"), of("java:111"), of("java:222"), of("java:333"));
     assertThat(cat1Rules.allRuleKeys()).containsOnly("14", "41", "64", "62", "1", "11", "12", "13");
     assertThat(cat1Rules.allRepos()).containsExactly("secrets");
+  }
+
+  @Test
+  void nested_categories_should_aggregate_rules_by_level() {
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(new ReportKey("levels-test", "A"));
+    var cat1Rules = complianceCategoryRulesMap.get("cat1");
+
     assertThat(cat1Rules.getRepoRuleKeysByLevel())
-      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
-        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102")))
-      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
-        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"),
-        of("java:9")))
-      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(of("java:1"), of("java:2"), of("java:3"),
-        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"),
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:1"), of("java:2"), of("java:3"), of("java:21"), of("java:22"), of("java:23"),
+        of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102")))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:1"), of("java:2"), of("java:3"), of("java:21"), of("java:22"), of("java:23"),
+        of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"), of("java:9")))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:1"), of("java:2"), of("java:3"), of("java:21"), of("java:22"), of("java:23"),
+        of("java:49"), of("java:99"), of("java:100"), of("java:101"), of("java:102"), of("java:6"),
         of("java:9"), of("java:111"), of("java:222"), of("java:333")));
+
     assertThat(cat1Rules.getRuleKeysByLevel())
       .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
       .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
       .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1", "14", "41", "64"));
+
     assertThat(cat1Rules.getReposByLevel())
       .hasEntrySatisfying(1, set -> assertThat(set).containsExactly("secrets"))
       .hasEntrySatisfying(2, set -> assertThat(set).containsExactly("secrets"));
+  }
 
-    // category 1.2
-    assertThat(cat12Rules.allRepoRuleKeys()).containsOnly(of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"));
+  @Test
+  void nested_subcategory_should_contain_only_its_rules() {
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(new ReportKey("levels-test", "A"));
+    var cat12Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.2");
+
+    assertThat(cat12Rules.allRepoRuleKeys()).containsOnly(
+      of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99"));
     assertThat(cat12Rules.allRuleKeys()).containsOnly("62", "1");
+
     assertThat(cat12Rules.getRepoRuleKeysByLevel())
-      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
-        of("java:99")))
-      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
-        of("java:99")))
-      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(of("java:21"), of("java:22"), of("java:23"), of("java:49"),
-        of("java:99")));
+      .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99")))
+      .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99")))
+      .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder(
+        of("java:21"), of("java:22"), of("java:23"), of("java:49"), of("java:99")));
+
     assertThat(cat12Rules.getRuleKeysByLevel())
       .hasEntrySatisfying(0, set -> assertThat(set).containsExactlyInAnyOrder("62"))
       .hasEntrySatisfying(1, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"))
       .hasEntrySatisfying(2, set -> assertThat(set).containsExactlyInAnyOrder("62", "1"));
-    assertThat(cat12Rules.getReposByLevel()).isEmpty();
 
-    // category 1.3.3
+    assertThat(cat12Rules.getReposByLevel()).isEmpty();
+  }
+
+  @Test
+  void deeply_nested_category_should_handle_empty_repo_rules() {
+    var complianceCategoryRulesMap = metadataRules.getRulesByCategory(new ReportKey("levels-test", "A"));
+    var cat133Rules = complianceCategoryRulesMap.get("cat1").getChildren().get("cat1.3").getChildren().get("cat1.3.3");
+
     assertThat(cat133Rules.allRepoRuleKeys()).isEmpty();
     assertThat(cat133Rules.allRuleKeys()).containsOnly("11", "12", "13");
     assertThat(cat133Rules.getRepoRuleKeysByLevel()).isEmpty();
