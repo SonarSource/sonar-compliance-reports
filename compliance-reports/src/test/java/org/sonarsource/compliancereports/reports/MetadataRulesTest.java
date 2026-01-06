@@ -44,7 +44,7 @@ class MetadataRulesTest {
     ReportKey reportKey = new ReportKey("test", "V1");
     Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1")));
     assertThat(rules).containsOnlyKeys(reportKey);
-    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(of("java:S001"));
     assertThat(rules.get(reportKey).allRuleKeys()).containsOnly("2", "3");
   }
 
@@ -52,7 +52,7 @@ class MetadataRulesTest {
   void getRulesByStandard_returns_rules_and_wildcards_for_multiple_categories() {
     ReportKey reportKey = new ReportKey("test", "V1");
     Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("category1", "category2")));
-    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(of("java:S001"));
     assertThat(rules.get(reportKey).allRuleKeys()).containsOnly("1", "2", "3");
   }
 
@@ -68,16 +68,33 @@ class MetadataRulesTest {
 
     assertThat(rules).containsOnlyKeys(reportKey1, reportKey2);
 
-    assertThat(rules.get(reportKey1).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey1).allRepoRuleKeys()).containsOnly(of("java:S001"));
     assertThat(rules.get(reportKey1).allRuleKeys()).containsOnly("1", "2", "3");
 
-    assertThat(rules.get(reportKey2).allRepoRuleKeys()).containsOnly(RepositoryRuleKey.of("java:S001"));
+    assertThat(rules.get(reportKey2).allRepoRuleKeys()).containsOnly(of("java:S001"));
     assertThat(rules.get(reportKey2).allRuleKeys()).isEmpty();
   }
 
   @Test
+  void getRulesByStandard_returns_rules_for_subcategories() {
+    ReportKey reportKey = new ReportKey("levels-test", "A");
+    Map<ReportKey, ComplianceCategoryRules> rules = metadataRules.getRulesByStandard(Map.of(reportKey, Set.of("cat1.1.1", "cat1.2")));
+    assertThat(rules.get(reportKey).allRepoRuleKeys()).containsOnly(
+      of("java:49"),
+      of("java:3"),
+      of("java:2"),
+      of("java:23"),
+      of("java:1"),
+      of("java:22"),
+      of("java:99"),
+      of("java:21")
+    );
+    assertThat(rules.get(reportKey).allRuleKeys()).containsOnly("1", "62");
+  }
+
+  @Test
   void RepositoryRuleKey_parses_repo_and_key() {
-    RepositoryRuleKey repositoryRuleKey = RepositoryRuleKey.of("repo:rule");
+    RepositoryRuleKey repositoryRuleKey = of("repo:rule");
     assertThat(repositoryRuleKey.repository()).isEqualTo("repo");
     assertThat(repositoryRuleKey.rule()).isEqualTo("rule");
   }

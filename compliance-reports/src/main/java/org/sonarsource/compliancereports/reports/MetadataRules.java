@@ -21,6 +21,7 @@ package org.sonarsource.compliancereports.reports;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -81,14 +82,23 @@ public class MetadataRules {
         throw new IllegalArgumentException("Unknown standard: " + reportKey);
       }
 
-      var filteredCategories = metadata.get(reportKey).getChildren().stream()
-        .filter(cat -> categories.contains(cat.key()))
-        .collect(Collectors.toSet());
+      var filteredCategories = flattenCategories(categories, metadata.get(reportKey).getChildren(), new HashSet<>());
       ComplianceCategoryRules rules = new ComplianceCategoryRules(filteredCategories);
       rulesByStandard.put(e.getKey(), rules);
     }
 
     return rulesByStandard;
+  }
+
+  private static Set<CategoryTreeNode> flattenCategories(Set<String> categories, Set<CategoryTreeNode> nodes,
+    Set<CategoryTreeNode> accumulator) {
+    for (var node : nodes) {
+      if (categories.contains(node.key())) {
+        accumulator.add(node);
+      }
+      flattenCategories(categories, node.children(), accumulator);
+    }
+    return accumulator;
   }
 
   public Map<String, Long> getRuleCountByStandardCategory(ReportKey standard, Map<String, Long> countByRuleKey) {
