@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 
-public record ReportMetadataSchema(Report report) {
+public record ComplianceStandardMetadata(Report report) {
 
   public record Report(
     String name,
@@ -34,6 +34,19 @@ public record ReportMetadataSchema(Report report) {
     Taxonomy taxonomy,
     @Nullable Levels levels,
     List<Version> versions) {
+
+    public Report withoutRules() {
+      return new Report(
+        this.name,
+        this.key,
+        this.description,
+        this.classification,
+        this.urls,
+        this.taxonomy,
+        this.levels,
+        this.versions.stream().map(Version::withoutRules).toList()
+      );
+    }
 
     public enum ReportClassification {
       ACCESSIBILITY,
@@ -70,7 +83,18 @@ public record ReportMetadataSchema(Report report) {
       @Nullable String description,
       @Nullable List<ReportUrl> urls,
       @Nullable List<Category> categories
-    ) {}
+    ) {
+
+      public Version withoutRules() {
+        return new Version(
+          this.name,
+          this.key,
+          this.description,
+          this.urls,
+          this.categories == null ? null : this.categories.stream().map(Category::withoutRules).toList()
+        );
+      }
+    }
 
     public record Category(
       String name,
@@ -81,6 +105,20 @@ public record ReportMetadataSchema(Report report) {
       @Nullable Set<String> rules,
       @Nullable List<Category> subcategories,
       @Nullable Integer ordinal
-    ) {}
+    ) {
+
+      public Category withoutRules() {
+        return new Category(
+          this.name,
+          this.description,
+          this.key,
+          this.level,
+          this.urls,
+          null,
+          this.subcategories == null ? null : this.subcategories.stream().map(Category::withoutRules).toList(),
+          this.ordinal
+        );
+      }
+    }
   }
 }

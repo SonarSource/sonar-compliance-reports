@@ -30,7 +30,7 @@ import static org.sonarsource.compliancereports.reports.RepositoryRuleKey.of;
 
 class MetadataRulesTest {
   private final MetadataLoader metaDataLoader = new MetadataLoader(Set.of(
-    () -> "TestMetadata.yml", () -> "TestMetadata2.yml", () -> "MetadataWithInclusiveLevels.yml", () -> "TestMetadataWithWildcards.yml"));
+    () -> "TestMetadata.yml", () -> "MetadataWithInclusiveLevels.yml", () -> "TestMetadataWithWildcards.yml"));
   private final MetadataRules metadataRules = new MetadataRules(metaDataLoader);
 
   @Test

@@ -19,11 +19,15 @@
  */
 package org.sonarsource.compliancereports.reports;
 
-import org.sonarsource.compliancereports.reports.metadata.MetadataType;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.sonarsource.compliancereports.reports.metadata.ComplianceStandardMetadata;
+import org.sonarsource.compliancereports.reports.metadata.MetadataType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -65,7 +69,44 @@ class MetadataLoaderTest {
       MetadataLoader metaDataLoader = new MetadataLoader(Set.of(metadataType));
       Set<String> standardNames = metaDataLoader.getAllReportsAsStrings();
 
-      assertThat(standardNames).containsOnly("test:V1");
+      assertThat(standardNames).containsOnly("test:V1", "test:V2");
+    }
+  }
+
+  @Nested
+  class WhenGettingSanitizedMetadata {
+    @Test
+    void shouldLoadEmptyMetadataIfNoneExists() {
+      var underTest = new MetadataLoader(Set.of());
+      assertThat(underTest.getSanitizedMetadata()).isEmpty();
+    }
+
+    @Test
+    void shouldLoadMetadata() {
+      MetadataType metadataType = () -> "MetadataWithInclusiveLevels.yml";
+      MetadataLoader metaDataLoader = new MetadataLoader(Set.of(metadataType));
+      Map<String, ComplianceStandardMetadata.Report> metadata = metaDataLoader.getSanitizedMetadata();
+
+      assertThat(metadata)
+        .hasEntrySatisfying("levels-test", report -> {
+          assertThat(report.versions()).hasSize(1);
+          List<ComplianceStandardMetadata.Report.Category> categories = report.versions().get(0).categories();
+          assertThat(categories).hasSize(1);
+          assertThat(flatten(categories, new ArrayList<>()).stream()
+            .flatMap(c -> c.rules() == null ? Stream.of() : c.rules().stream())
+            .toList()).isEmpty();
+        });
+    }
+
+    private static List<ComplianceStandardMetadata.Report.Category> flatten(List<ComplianceStandardMetadata.Report.Category> nodes,
+      List<ComplianceStandardMetadata.Report.Category> accumulator) {
+      for (var node : nodes) {
+        accumulator.add(node);
+        if (node.subcategories() != null) {
+          flatten(node.subcategories(), accumulator);
+        }
+      }
+      return accumulator;
     }
   }
 }

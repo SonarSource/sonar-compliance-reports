@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.sonarsource.compliancereports.reports.metadata.ComplianceStandardMetadata;
 import org.sonarsource.compliancereports.reports.metadata.MetadataType;
-import org.sonarsource.compliancereports.reports.metadata.ReportMetadataSchema;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -36,6 +36,7 @@ public class MetadataLoader {
 
   private static final String METADATA_RESOURCE_DIR = "metadata/";
   private final Map<ReportKey, CategoryTree> allMetadata;
+  private final Map<String, ComplianceStandardMetadata.Report> standardMetadataByKey;
   private final ObjectMapper objectMapper = new ObjectMapper()
       .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   private final Yaml yaml;
@@ -45,21 +46,29 @@ public class MetadataLoader {
     options.setMaxAliasesForCollections(175);
     yaml = new Yaml(options);
 
-    allMetadata = metadataTypes.stream()
+    var parsedMetadata = metadataTypes.stream()
       .map(metadataType -> parseMetadata(metadataType).report())
-      // produce buckets for each version in the report
+      .toList();
+
+    // produce a CategoryTree for each version in each standard
+    allMetadata = parsedMetadata.stream()
       .flatMap(parsed -> parsed.versions().stream().map(version -> new CategoryTree(parsed.key(), version, parsed.levels())))
       .collect(Collectors.toMap(CategoryTree::getKey, Function.identity()));
+
+    // produce a sanitized ComplianceStandardMetadata.Report object for each standard
+    standardMetadataByKey = parsedMetadata.stream()
+      .map(ComplianceStandardMetadata.Report::withoutRules)
+      .collect(Collectors.toMap(ComplianceStandardMetadata.Report::key, Function.identity()));
   }
 
-  private ReportMetadataSchema parseMetadata(MetadataType type) {
+  private ComplianceStandardMetadata parseMetadata(MetadataType type) {
     try {
       var resourceFileStream = getClass().getClassLoader().getResourceAsStream(METADATA_RESOURCE_DIR + type.getResourceFileName());
       // parse with SnakeYAML first to resolve YAML anchors/references
       // (https://stackoverflow.com/questions/40074700/jackson-yaml-support-for-anchors-and-references)
       var yamlObj = yaml.loadAs(resourceFileStream, Object.class);
       // convert to JSON, then reparse with Jackson so we can use records
-      return objectMapper.readValue(objectMapper.writeValueAsString(yamlObj), ReportMetadataSchema.class);
+      return objectMapper.readValue(objectMapper.writeValueAsString(yamlObj), ComplianceStandardMetadata.class);
     } catch (Exception e) {
       throw new IllegalStateException("Unable to load metadata: " + type.getResourceFileName(), e);
     }
@@ -67,6 +76,13 @@ public class MetadataLoader {
 
   public Map<ReportKey, CategoryTree> getAllMetadata() {
     return allMetadata;
+  }
+
+  /**
+   * @return the parsed compliance standard metadata with all rule mappings removed
+   */
+  public Map<String, ComplianceStandardMetadata.Report> getSanitizedMetadata() {
+    return standardMetadataByKey;
   }
 
   public Set<String> getAllReportsAsStrings() {

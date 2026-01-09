@@ -19,3 +19,12 @@ report:
             - :1
             - :2
             - :3
+    - name: 2
+      key: V2
+      categories:
+        - name: cat1
+          rules:
+            - java:S001
+        - name: cat2
+          rules:
+            - java:3

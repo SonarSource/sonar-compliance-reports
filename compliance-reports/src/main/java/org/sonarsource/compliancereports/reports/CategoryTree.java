@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.sonarsource.compliancereports.reports.metadata.ReportMetadataSchema;
+import org.sonarsource.compliancereports.reports.metadata.ComplianceStandardMetadata;
 
 /**
  * Represents the parsed metadata for a single report (standard + version)
@@ -33,12 +33,12 @@ public class CategoryTree {
   private final Set<CategoryTreeNode> children;
 
   @Nullable
-  private final ReportMetadataSchema.Report.Levels levels;
+  private final ComplianceStandardMetadata.Report.Levels levels;
 
   public record CategoryTreeNode(String key, Set<String> ruleKeys, Set<CategoryTreeNode> children, @Nullable Integer levelIndex,
     boolean levelsInclusive, int numberOfLevels, @Nullable Integer ordinal) {}
 
-  public CategoryTree(String standardKey, ReportMetadataSchema.Report.Version version, @Nullable ReportMetadataSchema.Report.Levels levels) {
+  public CategoryTree(String standardKey, ComplianceStandardMetadata.Report.Version version, @Nullable ComplianceStandardMetadata.Report.Levels levels) {
     this.key = new ReportKey(standardKey, version.key());
     this.levels = levels;
 
@@ -50,7 +50,7 @@ public class CategoryTree {
       children = Set.of();
     }
   }
-  private CategoryTreeNode generateTreeNode(ReportMetadataSchema.Report.Category category) {
+  private CategoryTreeNode generateTreeNode(ComplianceStandardMetadata.Report.Category category) {
     Set<CategoryTreeNode> subnodes = new HashSet<>();
     if (category.subcategories() != null && !category.subcategories().isEmpty()) {
       subnodes = category.subcategories().stream()
@@ -63,7 +63,7 @@ public class CategoryTree {
     boolean levelsInclusive = false;
     if (levels != null && category.level() != null) {
       levelIndex = levels.values().stream()
-        .map(ReportMetadataSchema.Report.Levels.LevelValue::name)
+        .map(ComplianceStandardMetadata.Report.Levels.LevelValue::name)
         .toList()
         .indexOf(category.level());
       levelsInclusive = levels.inclusive();
