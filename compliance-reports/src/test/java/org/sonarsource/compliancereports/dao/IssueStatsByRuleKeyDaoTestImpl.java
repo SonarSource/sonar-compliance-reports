@@ -38,6 +38,25 @@ public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
     dataStore.put(aggregationId, issueStats);
   }
 
+  @Override
+  public IssueStats aggregateIssueStatsForBranchUuidAndRuleKey(String aggregationId, String ruleKey) {
+    return dataStore.get(aggregationId).stream()
+      .filter(stats -> stats.ruleKey().equals(ruleKey))
+      .findFirst()
+      .orElse(null);
+  }
+
+  @Override
+  public void upsert(String aggregationId, AggregationType aggregationType, IssueStats updatedIssueStats) {
+    dataStore.get(aggregationId)
+      .replaceAll(stats -> stats.ruleKey().equals(updatedIssueStats.ruleKey()) ? updatedIssueStats : stats);
+  }
+
+  @Override
+  public void deleteByAggregationAndRuleKey(String aggregationId, AggregationType aggregationType, String ruleKey) {
+    dataStore.get(aggregationId).removeIf(stats -> stats.ruleKey().equals(ruleKey));
+  }
+
   public Map<String, List<IssueStats>> getDataStore() {
     return dataStore;
   }

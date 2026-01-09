@@ -42,6 +42,9 @@ public class IssueIngestionService {
     this.issueStatsByRuleKeyDao = issueStatsByRuleKeyDao;
   }
 
+  /**
+   * Ingest issues from analysis in bulk
+   */
   public void ingest(String aggregationId, AggregationType aggregationType, List<IssueFromAnalysis> issueData) {
     List<IssueStats> issueStats = calculateIssueStats(issueData);
     issueStatsByRuleKeyDao.deleteAndInsertIssueStats(aggregationId, aggregationType, issueStats);
@@ -79,6 +82,56 @@ public class IssueIngestionService {
     }
 
     return new IssueStats(ruleKey, issueCount, issueRating, issueMqrRating, hotspotsToReview, hotspotsReviewed);
+  }
+
+
+  /**
+   * Modify the hotspot count of an issue_stats_by_rule_key row by the given amount
+   */
+  public void adjustHotspotStats(String aggregationId, AggregationType aggregationType, String ruleKey, int adjustment) {
+    var issueStats = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType).stream()
+      .filter(i -> i.ruleKey().equals(ruleKey))
+      .findFirst()
+      .orElse(new IssueStats(ruleKey, 0, 1, 1, 0, 0));
+
+    var updatedIssueStats = new IssueStats(issueStats.ruleKey(), 0, issueStats.rating(), issueStats.mqrRating(),
+      issueStats.hotspotCount() + adjustment, issueStats.hotspotsReviewed() - adjustment);
+    if (updatedIssueStats.issueCount() != 0 || updatedIssueStats.hotspotCount() != 0 || updatedIssueStats.hotspotsReviewed() != 0) {
+      issueStatsByRuleKeyDao.upsert(aggregationId, aggregationType, updatedIssueStats);
+    } else {
+      issueStatsByRuleKeyDao.deleteByAggregationAndRuleKey(aggregationId, aggregationType, ruleKey);
+    }
+  }
+
+  /**
+   * Modify the issue count of an issue_stats_by_rule_key row by the given amount
+   */
+  public void adjustIssueStats(String aggregationId, AggregationType aggregationType, String ruleKey, int issueRating, int issueMqrRating,
+    int adjustment) {
+    var issueStats = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType).stream()
+      .filter(i -> i.ruleKey().equals(ruleKey))
+      .findFirst()
+      .orElse(new IssueStats(ruleKey, 0, issueRating, issueMqrRating, 0, 0));
+
+    var updatedIssueStats = getUpdatedIssueStats(aggregationId, ruleKey, issueStats, adjustment);
+    if (updatedIssueStats.issueCount() != 0 || updatedIssueStats.hotspotCount() != 0 || updatedIssueStats.hotspotsReviewed() != 0) {
+      issueStatsByRuleKeyDao.upsert(aggregationId, aggregationType, updatedIssueStats);
+    } else {
+      issueStatsByRuleKeyDao.deleteByAggregationAndRuleKey(aggregationId, aggregationType, ruleKey);
+    }
+  }
+
+  private IssueStats getUpdatedIssueStats(String aggregationId, String ruleKey, IssueStats oldStats, int adjustment) {
+    int newIssueCount = oldStats.issueCount() + adjustment;
+    if (newIssueCount == 0) {
+      return new IssueStats(oldStats.ruleKey(), newIssueCount, 1, 1, 0, 0);
+    }
+
+    var newIssueStats = issueStatsByRuleKeyDao.aggregateIssueStatsForBranchUuidAndRuleKey(aggregationId, ruleKey);
+    int newRating = newIssueStats == null ? oldStats.rating() : newIssueStats.rating();
+    int newMqrRating = newIssueStats == null ? oldStats.mqrRating() : newIssueStats.mqrRating();
+
+    return new IssueStats(oldStats.ruleKey(), newIssueCount, newRating, newMqrRating, 0, 0);
   }
 
 }

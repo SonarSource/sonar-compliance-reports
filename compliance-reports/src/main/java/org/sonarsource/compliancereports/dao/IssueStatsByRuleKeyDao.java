@@ -26,4 +26,10 @@ public interface IssueStatsByRuleKeyDao {
   List<IssueStats> getIssueStats(String aggregationId, AggregationType aggregationType);
 
   void deleteAndInsertIssueStats(String aggregationId, AggregationType aggregationType, List<IssueStats> issueStats);
+
+  IssueStats aggregateIssueStatsForBranchUuidAndRuleKey(String aggregationId, String ruleKey);
+
+  void upsert(String aggregationId, AggregationType aggregationType, IssueStats updatedIssueStats);
+
+  void deleteByAggregationAndRuleKey(String aggregationId, AggregationType aggregationType, String ruleKey);
 }

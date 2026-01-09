@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.sonarsource.compliancereports.dao.AggregationType.PROJECT;
 
 class IssueIngestionServiceTest {
@@ -63,5 +64,32 @@ class IssueIngestionServiceTest {
         new IssueStats("python:42", 3, 3, 3, 0, 0),
         new IssueStats("cs:100", 0, 1, 1, 1, 1)
       );
+  }
+
+  @Test
+  void onAdjustHotspotStats_shouldUpdateDataStore() {
+    var initialHotspotCount = 1;
+    var initialiHotspotsReviewed = 3;
+    var adjustment = 1;
+    when(dao.getIssueStats(PROJECT_ID, PROJECT))
+      .thenReturn(List.of(new IssueStats("cs:100", 0, 1, 1, initialHotspotCount, initialiHotspotsReviewed)));
+
+    underTest.adjustHotspotStats(PROJECT_ID, PROJECT, "cs:100", adjustment);
+
+    verify(dao)
+      .upsert(PROJECT_ID, PROJECT, new IssueStats("cs:100", 0, 1, 1, initialHotspotCount + adjustment, initialiHotspotsReviewed - adjustment));
+  }
+
+  @Test
+  void onAdjustIssueStats_shouldUpdateDataStore() {
+    var initialIssueCount = 3;
+    var adjustment = -1;
+    when(dao.getIssueStats(PROJECT_ID, PROJECT))
+      .thenReturn(List.of(new IssueStats("java:1", initialIssueCount, 2, 2, 0, 0)));
+
+    underTest.adjustIssueStats(PROJECT_ID, PROJECT, "java:1", 2, 2, adjustment);
+
+    verify(dao)
+      .upsert(PROJECT_ID, PROJECT, new IssueStats("java:1", initialIssueCount + adjustment, 2, 2, 0, 0));
   }
 }
