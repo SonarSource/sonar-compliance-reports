@@ -19,9 +19,11 @@
  */
 package org.sonarsource.compliancereports.dao;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
 
@@ -30,6 +32,14 @@ public class IssueStatsByRuleKeyDaoTestImpl implements IssueStatsByRuleKeyDao {
   @Override
   public List<IssueStats> getIssueStats(String aggregationId, AggregationType aggregationType) {
     return dataStore.get(aggregationId);
+  }
+
+  @Override
+  public Map<String, List<IssueStats>> getIssueStatsByAggregationIds(Collection<String> aggregationIds, AggregationType aggregationType) {
+    return dataStore.entrySet()
+      .stream()
+      .filter(e -> aggregationIds.contains(e.getKey()))
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   @Override

@@ -21,10 +21,12 @@ package org.sonarsource.compliancereports.reports;
 
 import jakarta.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sonarsource.compliancereports.dao.ActiveRuleDao;
 import org.sonarsource.compliancereports.dao.AggregationType;
@@ -55,6 +57,24 @@ public class ComplianceReportService {
     List<IssueStats> issueStatsList = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType);
 
     return getCategoryStats(rulesByCategory, issueStatsList, activeRuleKeys, cweStandard, levelIndex);
+  }
+
+  public Map<String, List<CategoryStats>> getComplianceReportForAggregations(Collection<String> aggregationIds, AggregationType aggregationType,
+    ReportKey standard) {
+    return getComplianceReportForAggregations(aggregationIds, aggregationType, standard, null, null);
+  }
+
+  public Map<String, List<CategoryStats>> getComplianceReportForAggregations(Collection<String> aggregationIds, AggregationType aggregationType,
+    ReportKey standard, @Nullable ReportKey cweStandard, @Nullable Integer levelIndex) {
+    Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRulesByCategory(standard);
+    Map<String, List<IssueStats>> issueStatsListByAggregationId = issueStatsByRuleKeyDao.getIssueStatsByAggregationIds(aggregationIds, aggregationType);
+
+    return issueStatsListByAggregationId.entrySet()
+      .stream()
+      .collect(Collectors.toMap(
+        Map.Entry::getKey,
+        e -> getCategoryStats(rulesByCategory, e.getValue(), Set.of(), cweStandard, levelIndex)
+      ));
   }
 
   private List<CategoryStats> getCategoryStats(Map<String, ComplianceCategoryRules> rulesByCategory,

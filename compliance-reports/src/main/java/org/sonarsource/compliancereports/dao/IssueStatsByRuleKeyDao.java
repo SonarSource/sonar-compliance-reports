@@ -19,11 +19,18 @@
  */
 package org.sonarsource.compliancereports.dao;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface IssueStatsByRuleKeyDao {
 
   List<IssueStats> getIssueStats(String aggregationId, AggregationType aggregationType);
+
+  /**
+   * This method is used by {@link org.sonarsource.compliancereports.reports.ComplianceReportService#getComplianceReportForAggregations}
+   */
+  Map<String, List<IssueStats>> getIssueStatsByAggregationIds(Collection<String> aggregationIds, AggregationType aggregationType);
 
   void deleteAndInsertIssueStats(String aggregationId, AggregationType aggregationType, List<IssueStats> issueStats);
 

@@ -319,6 +319,68 @@ class ComplianceReportServiceTest {
       );
   }
 
+  @Test
+  void whenGetComplianceReportForAggregations_shouldReturnReportsForEachAggregation() {
+    setupMetadata(List.of(
+      categoryNode("a1", Set.of("java:1")),
+      categoryNode("a2", Set.of("java:2")),
+      categoryNode("a3", Set.of("java:3"))
+    ));
+
+    String projectUuid1 = UUID.randomUUID().toString();
+    String projectUuid2 = UUID.randomUUID().toString();
+    String projectUuid3 = UUID.randomUUID().toString();
+
+    Map<String, List<IssueStats>> issueStatsByAggregationId = Map.of(
+      projectUuid1, List.of(
+        new IssueStats("java:1", 10, 1, 1, 0, 0),
+        new IssueStats("java:2", 20, 2, 2, 0, 0),
+        new IssueStats("java:3", 30, 3, 3, 0, 0)
+      ),
+      projectUuid2, List.of(
+        new IssueStats("java:1", 1, 3, 3, 0, 0),
+        new IssueStats("java:2", 2, 1, 1, 0, 0),
+        new IssueStats("java:3", 3, 2, 2, 0, 0)
+      ),
+      projectUuid3, List.of(
+        new IssueStats("java:1", 0, 1, 1, 3, 3),
+        new IssueStats("java:2", 0, 1, 1, 17, 0),
+        new IssueStats("java:3", 0, 1, 1, 2, 21)
+      )
+    );
+
+    setupIssueStatsForMultipleAggregations(issueStatsByAggregationId);
+
+    var reportsByAggregationId = underTest.getComplianceReportForAggregations(issueStatsByAggregationId.keySet(), PROJECT, REPORT_KEY);
+
+    assertThat(reportsByAggregationId)
+      .hasSize(3)
+      .hasEntrySatisfying(projectUuid1, report ->
+        assertThat(report)
+          .containsExactly(
+            leafCategory("a1", 10, 0, 0, 1, 1, Map.of(1, 10), Map.of(1, 10), 1, 0),
+            leafCategory("a2", 20, 0, 0, 2, 2, Map.of(2, 20), Map.of(2, 20), 1, 0),
+            leafCategory("a3", 30, 0, 0, 3, 3, Map.of(3, 30), Map.of(3, 30), 1, 0)
+          )
+      )
+      .hasEntrySatisfying(projectUuid2, report ->
+        assertThat(report)
+          .containsExactly(
+            leafCategory("a1", 1, 0, 0, 3, 3, Map.of(3, 1), Map.of(3, 1), 1, 0),
+            leafCategory("a2", 2, 0, 0, 1, 1, Map.of(1, 2), Map.of(1, 2), 1, 0),
+            leafCategory("a3", 3, 0, 0, 2, 2, Map.of(2, 3), Map.of(2, 3), 1, 0)
+          )
+      )
+      .hasEntrySatisfying(projectUuid3, report ->
+        assertThat(report)
+          .containsExactly(
+            leafCategory("a1", 0, 3, 3, 1, 1, Map.of(1, 0), Map.of(1, 0), 3, 0),
+            leafCategory("a2", 0, 17, 0, 1, 1, Map.of(1, 0), Map.of(1, 0), 5, 0),
+            leafCategory("a3", 0, 2, 21, 1, 1, Map.of(1, 0), Map.of(1, 0), 1, 0)
+          )
+      );
+  }
+
   private void setupMetadata(List<CategoryTreeNode> buckets) {
     setupMetadata(REPORT_KEY, buckets);
   }
@@ -333,6 +395,11 @@ class ComplianceReportServiceTest {
     when(issueStatsByRuleKeyDao.getIssueStats(PROJECT_ID, PROJECT)).thenReturn(stats);
   }
 
+  private void setupIssueStatsForMultipleAggregations(Map<String, List<IssueStats>> statsByAggregationId) {
+    when(issueStatsByRuleKeyDao.getIssueStatsByAggregationIds(statsByAggregationId.keySet(), PROJECT))
+      .thenReturn(statsByAggregationId);
+  }
+
   private void setupActiveRules(Set<String> ruleKeys) {
     when(activeRuleDao.getActiveRuleKeys(PROJECT_ID, PROJECT)).thenReturn(ruleKeys);
   }
@@ -341,18 +408,58 @@ class ComplianceReportServiceTest {
     return new CategoryTreeNode(name, ruleKeys, Set.of(), null, false, 0, null);
   }
 
-  private CategoryStats leafCategory(String name, int reviewedCount, int toReviewCount, int acceptedCount,
-                                      int minSeverity, int maxSeverity, Map<Integer, Integer> bySeverity,
-                                      Map<Integer, Integer> byEffort, int numActiveRules, int numRulesWithViolations) {
-    return new CategoryStats(name, reviewedCount, toReviewCount, acceptedCount, minSeverity, maxSeverity,
-      bySeverity, byEffort, numActiveRules, numRulesWithViolations, List.of());
+  private CategoryStats leafCategory(
+    String categoryName,
+    int openIssues,
+    int toReviewHotspots,
+    int reviewedHotspots,
+    int rating,
+    int mqrRating,
+    Map<Integer, Integer> ratingDistribution,
+    Map<Integer, Integer> mqrRatingDistribution,
+    int hotspotRating,
+    int activeRules
+  ) {
+    return new CategoryStats(
+      categoryName,
+      openIssues,
+      toReviewHotspots,
+      reviewedHotspots,
+      rating,
+      mqrRating,
+      ratingDistribution,
+      mqrRatingDistribution,
+      hotspotRating,
+      activeRules,
+      List.of()
+    );
   }
 
-  private CategoryStats categoryWithChildren(String name, int reviewedCount, int toReviewCount, int acceptedCount,
-                                              int minSeverity, int maxSeverity, Map<Integer, Integer> bySeverity,
-                                              Map<Integer, Integer> byEffort, int numActiveRules, int numRulesWithViolations,
-                                              List<CategoryStats> children) {
-    return new CategoryStats(name, reviewedCount, toReviewCount, acceptedCount, minSeverity, maxSeverity,
-      bySeverity, byEffort, numActiveRules, numRulesWithViolations, children);
+  private CategoryStats categoryWithChildren(
+    String categoryName,
+    int openIssues,
+    int toReviewHotspots,
+    int reviewedHotspots,
+    int rating,
+    int mqrRating,
+    Map<Integer, Integer> ratingDistribution,
+    Map<Integer, Integer> mqrRatingDistribution,
+    int hotspotRating,
+    int activeRules,
+    List<CategoryStats> children
+  ) {
+    return new CategoryStats(
+      categoryName,
+      openIssues,
+      toReviewHotspots,
+      reviewedHotspots,
+      rating,
+      mqrRating,
+      ratingDistribution,
+      mqrRatingDistribution,
+      hotspotRating,
+      activeRules,
+      children
+    );
   }
 }
