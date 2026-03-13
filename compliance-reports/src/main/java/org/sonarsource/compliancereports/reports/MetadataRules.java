@@ -124,6 +124,14 @@ public class MetadataRules {
     return ruleCountByCategory;
   }
 
+  public CategoryTree getCategoryTree(ReportKey reportKey) {
+    CategoryTree tree = metadataLoader.getAllMetadata().get(reportKey);
+    if (tree == null) {
+      throw new IllegalArgumentException("Unknown standard: " + reportKey);
+    }
+    return tree;
+  }
+
   /**
    * Exclude rule keys that are being filtered out by filters on other compliance standards
    */

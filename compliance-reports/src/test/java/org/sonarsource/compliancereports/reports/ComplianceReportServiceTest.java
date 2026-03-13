@@ -33,6 +33,7 @@ import org.sonarsource.compliancereports.dao.IssueStatsByRuleKeyDao;
 import org.sonarsource.compliancereports.reports.CategoryTree.CategoryTreeNode;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.compliancereports.dao.AggregationType.PROJECT;
@@ -135,16 +136,16 @@ class ComplianceReportServiceTest {
   void whenGetComplianceReportWithLevels_shouldReturnReportWithCorrectData() {
     setupMetadata(List.of(
       new CategoryTreeNode("cat1", Set.of(), Set.of(
-        new CategoryTreeNode("cat1.1", Set.of("java:9"), Set.of(), 0, true, 3, null),
-        new CategoryTreeNode("cat1.2", Set.of("java:1"), Set.of(), 1, true, 3, null),
-        new CategoryTreeNode("cat1.3", Set.of("java:4"), Set.of(), 2, true, 3, null)
-      ), null, true, 3, null),
+        new CategoryTreeNode("cat1.1", Set.of("java:9"), Set.of(), 0, true, 3, null, null),
+        new CategoryTreeNode("cat1.2", Set.of("java:1"), Set.of(), 1, true, 3, null, null),
+        new CategoryTreeNode("cat1.3", Set.of("java:4"), Set.of(), 2, true, 3, null, null)
+      ), null, true, 3, null, null),
       new CategoryTreeNode("cat2", Set.of(), Set.of(
         new CategoryTreeNode("cat2.2", Set.of(), Set.of(
-          new CategoryTreeNode("cat2.2.1", Set.of("java:9"), Set.of(), 0, true, 3, null),
-          new CategoryTreeNode("cat2.2.2", Set.of("java:9", "java:1"), Set.of(), 2, true, 3, null)
-        ), null, true, 3, null)
-      ), null, true, 3, null)
+          new CategoryTreeNode("cat2.2.1", Set.of("java:9"), Set.of(), 0, true, 3, null, null),
+          new CategoryTreeNode("cat2.2.2", Set.of("java:9", "java:1"), Set.of(), 2, true, 3, null, null)
+        ), null, true, 3, null, null)
+      ), null, true, 3, null, null)
     ));
 
     setupIssueStats(List.of(
@@ -270,9 +271,9 @@ class ComplianceReportServiceTest {
   @Test
   void whenGetComplianceReport_shouldReturnInOrderWhenOrdinalsAreProvided() {
     setupMetadata(List.of(
-      new CategoryTreeNode("a2", Set.of("java:2"), Set.of(), null, false, 0, 2),
-      new CategoryTreeNode("a1", Set.of("java:1"), Set.of(), null, false, 0, 3),
-      new CategoryTreeNode("a3", Set.of("java:3"), Set.of(), null, false, 0, 1) // Should be returned first
+      new CategoryTreeNode("a2", Set.of("java:2"), Set.of(), null, false, 0, 2, null),
+      new CategoryTreeNode("a1", Set.of("java:1"), Set.of(), null, false, 0, 3, null),
+      new CategoryTreeNode("a3", Set.of("java:3"), Set.of(), null, false, 0, 1, null) // Should be returned first
     ));
 
     setupIssueStats(List.of(
@@ -317,6 +318,19 @@ class ComplianceReportServiceTest {
         leafCategory("a2", 20, 0, 0, 2, 2, Map.of(2, 20), Map.of(2, 20), 1, 1),
         leafCategory("a3", 30, 0, 0, 3, 3, Map.of(3, 30), Map.of(3, 30), 1, 1)
       );
+  }
+
+  @Test
+  void whenGetCategoryTree_shouldReturnTreeForKnownReportKey() {
+    setupMetadata(List.of(categoryNode("a1", Set.of("java:1"))));
+    var tree = underTest.getCategoryTree(REPORT_KEY);
+    assertThat(tree).isEqualTo(metadataMap.get(REPORT_KEY));
+  }
+
+  @Test
+  void whenGetCategoryTree_shouldThrowForUnknownReportKey() {
+    assertThatThrownBy(() -> underTest.getCategoryTree(new ReportKey("unknown", "v999")))
+      .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -405,7 +419,7 @@ class ComplianceReportServiceTest {
   }
 
   private CategoryTreeNode categoryNode(String name, Set<String> ruleKeys) {
-    return new CategoryTreeNode(name, ruleKeys, Set.of(), null, false, 0, null);
+    return new CategoryTreeNode(name, ruleKeys, Set.of(), null, false, 0, null, null);
   }
 
   private CategoryStats leafCategory(

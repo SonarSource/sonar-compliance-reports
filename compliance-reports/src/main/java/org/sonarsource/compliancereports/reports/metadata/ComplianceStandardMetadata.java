@@ -104,7 +104,8 @@ public record ComplianceStandardMetadata(Report report) {
       @Nullable List<ReportUrl> urls,
       @Nullable Set<String> rules,
       @Nullable List<Category> subcategories,
-      @Nullable Integer ordinal
+      @Nullable Integer ordinal,
+      @Nullable Set<String> cwes
     ) {
 
       public Category withoutRules() {
@@ -116,7 +117,8 @@ public record ComplianceStandardMetadata(Report report) {
           this.urls,
           null,
           this.subcategories == null ? null : this.subcategories.stream().map(Category::withoutRules).toList(),
-          this.ordinal
+          this.ordinal,
+          this.cwes
         );
       }
     }

@@ -70,6 +70,6 @@ class ComplianceCategoryRulesTest {
   }
 
   private CategoryTree.CategoryTreeNode createNode(String key, Integer ordinal) {
-    return new CategoryTree.CategoryTreeNode(key, Set.of(), Set.of(), null, false, 0, ordinal);
+    return new CategoryTree.CategoryTreeNode(key, Set.of(), Set.of(), null, false, 0, ordinal, null);
   }
 }

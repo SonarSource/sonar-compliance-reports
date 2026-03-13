@@ -36,7 +36,7 @@ public class CategoryTree {
   private final ComplianceStandardMetadata.Report.Levels levels;
 
   public record CategoryTreeNode(String key, Set<String> ruleKeys, Set<CategoryTreeNode> children, @Nullable Integer levelIndex,
-    boolean levelsInclusive, int numberOfLevels, @Nullable Integer ordinal) {}
+    boolean levelsInclusive, int numberOfLevels, @Nullable Integer ordinal, @Nullable Set<String> cwes) {}
 
   public CategoryTree(String standardKey, ComplianceStandardMetadata.Report.Version version, @Nullable ComplianceStandardMetadata.Report.Levels levels) {
     this.key = new ReportKey(standardKey, version.key());
@@ -69,7 +69,7 @@ public class CategoryTree {
       levelsInclusive = levels.inclusive();
     }
 
-    return new CategoryTreeNode(category.name(), rules, subnodes, levelIndex, levelsInclusive, levels == null ? 0 : levels.values().size(), category.ordinal());
+    return new CategoryTreeNode(category.name(), rules, subnodes, levelIndex, levelsInclusive, levels == null ? 0 : levels.values().size(), category.ordinal(), category.cwes());
   }
 
   /**

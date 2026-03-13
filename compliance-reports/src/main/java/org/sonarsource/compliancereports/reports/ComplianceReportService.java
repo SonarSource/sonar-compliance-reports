@@ -46,6 +46,10 @@ public class ComplianceReportService {
     this.metadataRules = metadataRules;
   }
 
+  public CategoryTree getCategoryTree(ReportKey reportKey) {
+    return metadataRules.getCategoryTree(reportKey);
+  }
+
   public List<CategoryStats> getComplianceReport(String aggregationId, AggregationType aggregationType, ReportKey standard) {
     return getComplianceReport(aggregationId, aggregationType, standard, null, null);
   }
@@ -55,7 +59,6 @@ public class ComplianceReportService {
     Map<String, ComplianceCategoryRules> rulesByCategory = metadataRules.getRulesByCategory(standard);
     Set<String> activeRuleKeys = activeRuleDao.getActiveRuleKeys(aggregationId, aggregationType);
     List<IssueStats> issueStatsList = issueStatsByRuleKeyDao.getIssueStats(aggregationId, aggregationType);
-
     return getCategoryStats(rulesByCategory, issueStatsList, activeRuleKeys, cweStandard, levelIndex);
   }
 
