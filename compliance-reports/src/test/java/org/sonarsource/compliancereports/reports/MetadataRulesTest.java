@@ -232,4 +232,43 @@ class MetadataRulesTest {
     assertThat(cat1Rules.containsRuleAtLevel("java:1", -1)).isFalse();
     assertThat(cat1Rules.containsRuleAtLevel("java:1", 5)).isFalse();
   }
+
+  @Test
+  void getCategoryTrees_returns_category_trees_for_all_report_keys() {
+    ReportKey reportKey1 = new ReportKey("test", "V1");
+    ReportKey reportKey2 = new ReportKey("test", "V2");
+
+    Map<ReportKey, CategoryTree> trees = metadataRules.getCategoryTrees(Set.of(reportKey1, reportKey2));
+
+    assertThat(trees).containsOnlyKeys(reportKey1, reportKey2);
+    assertThat(trees.get(reportKey1)).isNotNull();
+    assertThat(trees.get(reportKey2)).isNotNull();
+  }
+
+  @Test
+  void getCategoryTrees_returns_empty_map_for_empty_collection() {
+    Map<ReportKey, CategoryTree> trees = metadataRules.getCategoryTrees(Set.of());
+
+    assertThat(trees).isEmpty();
+  }
+
+  @Test
+  void getCategoryTrees_throws_IAE_if_report_key_unknown() {
+    ReportKey unknownReportKey = new ReportKey("unknown", "V1");
+    Set<ReportKey> reportKeys = Set.of(unknownReportKey);
+
+    assertThatThrownBy(() -> metadataRules.getCategoryTrees(reportKeys))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("Unknown standard: unknown:V1");
+  }
+
+  @Test
+  void getCategoryTrees_handles_single_report_key() {
+    ReportKey reportKey = new ReportKey("test", "V1");
+
+    Map<ReportKey, CategoryTree> trees = metadataRules.getCategoryTrees(Set.of(reportKey));
+
+    assertThat(trees).containsOnlyKeys(reportKey);
+    assertThat(trees.get(reportKey)).isNotNull();
+  }
 }

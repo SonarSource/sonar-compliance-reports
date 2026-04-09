@@ -132,6 +132,14 @@ public class MetadataRules {
     return tree;
   }
 
+  public Map<ReportKey, CategoryTree> getCategoryTrees(Collection<ReportKey> reportKeys) {
+    Map<ReportKey, CategoryTree> results = new HashMap<>();
+    for (ReportKey key : reportKeys) {
+      results.put(key, getCategoryTree(key));
+    }
+    return results;
+  }
+
   /**
    * Exclude rule keys that are being filtered out by filters on other compliance standards
    */
