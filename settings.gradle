@@ -1,0 +1,27 @@
+pluginManagement {
+  repositories {
+    maven {
+      url 'https://repox.jfrog.io/repox/plugins.gradle.org/'
+      // The environment variables ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD are used on QA env
+      // On local box, please add artifactoryUsername and artifactoryPassword to ~/.gradle/gradle.properties
+      def artifactoryUsername = System.env.'ARTIFACTORY_USERNAME' ?: (artifactoryUsername ?: '')
+      def artifactoryPassword = System.env.'ARTIFACTORY_PASSWORD' ?: (artifactoryPassword ?: '')
+      if (artifactoryUsername && artifactoryPassword) {
+        credentials {
+          username artifactoryUsername
+          password artifactoryPassword
+        }
+      }
+    }
+  }
+}
+
+plugins {
+  id 'io.micronaut.platform.catalog' version '4.6.2'
+}
+
+rootProject.name = 'sonar-compliance-reports'
+
+include 'compliance-reports'
+
+enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

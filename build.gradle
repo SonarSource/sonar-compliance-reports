@@ -1,0 +1,149 @@
+plugins {
+  alias libs.plugins.license.format
+  alias libs.plugins.jfrog.artifactory
+}
+
+allprojects {
+  apply plugin: 'maven-publish'
+  apply plugin: 'com.jfrog.artifactory'
+
+  repositories {
+    maven {
+      url 'https://repox.jfrog.io/repox/sonarsource'
+      // The environment variables ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD are used on QA env
+      // On local box, please add artifactoryUsername and artifactoryPassword to ~/.gradle/gradle.properties
+      def artifactoryUsername = System.env.'ARTIFACTORY_USERNAME' ?: (project.findProperty('artifactoryUsername') ?: '')
+      def artifactoryPassword = System.env.'ARTIFACTORY_PASSWORD' ?: (project.findProperty('artifactoryPassword') ?: '')
+      if (artifactoryUsername && artifactoryPassword) {
+        credentials {
+          username artifactoryUsername
+          password artifactoryPassword
+        }
+      }
+    }
+  }
+}
+
+subprojects {
+  apply plugin: 'com.github.hierynomus.license'
+  apply plugin: 'jacoco'
+  apply plugin: 'java'
+  apply plugin: 'signing'
+
+  configurations.configureEach {
+    resolutionStrategy {
+      // Force a newer version of log4j-core to avoid vulnerabilities.
+      force 'org.apache.logging.log4j:log4j-core:2.25.4'
+      force libs.assertj.core
+    }
+  }
+
+  jar {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+  }
+
+  if (System.env['CI'] != null) {
+    compileJava {
+      options.incremental = false
+    }
+  }
+
+  license {
+    ext.years = '2022-2025'
+    header = rootProject.file("$rootDir/LICENSE")
+    strictCheck true
+    mapping {
+      java = 'SLASHSTAR_STYLE'
+    }
+    includes(['**/*.java'])
+  }
+
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(17)
+    }
+  }
+
+  test {
+    jvmArgs '-Dfile.encoding=UTF8',
+      '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+      '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+      '--add-opens', 'java.base/java.time=ALL-UNNAMED'
+    finalizedBy jacocoTestReport
+    jacoco {
+      enabled = true
+      excludes = ['software/amazon/awssdk/services/ssm/DefaultSsmClient']
+    }
+    maxParallelForks = 1
+    maxHeapSize = '3G'
+    useJUnitPlatform()
+    reports.html.required = false
+    testLogging {
+      exceptionFormat 'full'
+      events 'skipped', 'failed'
+      showStandardStreams = true
+    }
+  }
+
+  jacocoTestReport {
+    dependsOn test
+    reports {
+      xml.required = true
+      xml.destination file("${buildDir}/jacoco-coverage.xml")
+    }
+  }
+
+  signing {
+    def signingKeyId = findProperty('signingKeyId')
+    def signingKey = findProperty('signingKey')
+    def signingPassword = findProperty('signingPassword')
+
+    useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+
+    required {
+      def branch = System.getenv()['GITHUB_REF_NAME']
+      branch == 'master'
+    }
+
+    sign publishing.publications
+  }
+
+  tasks.withType(Sign) {
+    onlyIf {
+      def branch = System.getenv()['GITHUB_REF_NAME']
+      !artifactoryPublish.skip && branch == 'master'
+    }
+
+    dependsOn(jar)
+  }
+}
+
+artifactory {
+  clientConfig.setIncludeEnvVars(true)
+  clientConfig.setEnvVarsExcludePatterns('*password*,*PASSWORD*,*secret*,*MAVEN_CMD_LINE_ARGS*,sun.java.command,*token*,*TOKEN*,*LOGIN*,*login*,*key*,*KEY*,*signing*')
+  contextUrl = System.getenv('ARTIFACTORY_URL')
+  publish {
+    repository {
+      repoKey = System.getenv('ARTIFACTORY_DEPLOY_REPO')
+      username = System.getenv('ARTIFACTORY_DEPLOY_USERNAME') ?: project.findProperty('artifactoryUsername')
+      password = System.getenv('ARTIFACTORY_DEPLOY_PASSWORD') ?: project.findProperty('artifactoryPassword')
+    }
+    defaults {
+      properties = [
+        'build.name'      : System.getenv('BUILD_NAME'),
+        'build.number'    : System.getenv('BUILD_NUMBER'),
+        'pr.branch.target': System.getenv('GITHUB_BASE_BRANCH'),
+        'pr.number'       : System.getenv('PULL_REQUEST'),
+        'vcs.branch'      : System.getenv('GITHUB_BRANCH'),
+        'vcs.revision'    : System.getenv('GIT_SHA1'),
+        'version'         : version
+      ]
+      publications('service')
+      publishPom = true
+      publishIvy = false
+    }
+  }
+  clientConfig.info.setBuildName(System.getenv('BUILD_NAME'))
+  clientConfig.info.setBuildNumber(System.getenv('BUILD_NUMBER'))
+}
