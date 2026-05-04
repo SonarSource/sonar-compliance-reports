@@ -23,8 +23,9 @@ dependencies {
 
 ext {
   release = project.hasProperty('release') && project.getProperty('release')
-  buildNumber = System.getProperty("buildNumber")
+  buildNumber = System.getProperty('buildNumber')
 }
+
 // Replaces the version defined in sources, usually x.y-SNAPSHOT, by a version identifying the build.
 if (version.endsWith('-SNAPSHOT') && ext.buildNumber != null) {
   def versionSuffix = (version.toString().count('.') == 1 ? ".0.${ext.buildNumber}" : ".${ext.buildNumber}")
@@ -80,7 +81,7 @@ publishing {
           }
         }
         scm {
-          url = 'https://github.com/SonarSource/sonarcloud-software-quality-reports'
+          url = 'https://github.com/SonarSource/sonar-compliance-reports'
         }
         developers {
           developer {
@@ -96,7 +97,7 @@ publishing {
   }
 }
 
-// publish a Java 17-compatible library
+// Publish a Java 17-compatible library.
 java {
   toolchain {
     languageVersion = JavaLanguageVersion.of(17)
