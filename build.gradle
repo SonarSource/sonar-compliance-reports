@@ -1,7 +1,6 @@
 plugins {
   alias libs.plugins.license.format
   alias libs.plugins.jfrog.artifactory
-  alias libs.plugins.sonarqube
 }
 
 allprojects {

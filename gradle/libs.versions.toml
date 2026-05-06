@@ -7,7 +7,6 @@ junit-pioneer = "2.3.0"
 license-format = "0.16.1"
 micronaut = "4.9.3"
 sonar-plugin-api = "13.4.3.4290"
-sonarqube = "6.2.0.5505"
 
 [libraries]
 assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj-core" }
@@ -19,4 +18,3 @@ sonar-plugin-api = { module = "org.sonarsource.api.plugin:sonar-plugin-api", ver
 [plugins]
 jfrog-artifactory = { id = "com.jfrog.artifactory", version.ref = "jfrog" }
 license-format = { id = "com.github.hierynomus.license", version.ref = "license-format" }
-sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
