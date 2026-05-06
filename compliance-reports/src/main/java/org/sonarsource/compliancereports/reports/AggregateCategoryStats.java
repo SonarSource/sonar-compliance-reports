@@ -126,4 +126,3 @@ class AggregateCategoryStats {
     return 5;
   }
 }
-
