@@ -50,7 +50,7 @@ subprojects {
   }
 
   license {
-    ext.years = '2022-2025'
+    ext.years = '2022-2026'
     header = rootProject.file("$rootDir/LICENSE")
     strictCheck true
     mapping {
