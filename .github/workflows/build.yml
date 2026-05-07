@@ -37,7 +37,7 @@ jobs:
           artifactory-reader-role: private-reader
           artifactory-deployer-role: qa-deployer
           deploy-pull-request: true
-          sonar-platform: none
+          sonar-platform: next
       - name: Upload build reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
