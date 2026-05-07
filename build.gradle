@@ -1,6 +1,14 @@
 plugins {
   alias libs.plugins.license.format
   alias libs.plugins.jfrog.artifactory
+  alias libs.plugins.sonarqube
+}
+
+sonarqube {
+  properties {
+    property 'sonar.host.url', 'https://next.sonarqube.com/sonarqube'
+    property 'sonar.projectKey', 'SonarSource_sonar-compliance-reports'
+  }
 }
 
 allprojects {
