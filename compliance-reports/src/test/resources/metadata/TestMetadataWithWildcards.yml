@@ -1,0 +1,15 @@
+report:
+  key: test-wildcard-repos
+  versions:
+    - name: 1
+      key: WithWildcardReposVersion1
+      categories:
+        - name: category1withsecretrules
+          rules:
+            - 'secrets:'
+    - name: 2
+      key: WithNoWildcardsVersion2
+      categories:
+        - name: category2withnowildcards
+          rules:
+            - 'secrets:1'

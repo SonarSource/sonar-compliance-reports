@@ -1,0 +1,22 @@
+[versions]
+assertj-core = "3.27.7"
+jakarta-inject = "2.0.1"
+jfrog = "4.33.1"
+junit = "5.14.3"
+junit-pioneer = "2.3.0"
+license-format = "0.16.1"
+micronaut = "4.9.3"
+sonar-plugin-api = "13.4.3.4290"
+sonarqube = "6.2.0.5505"
+
+[libraries]
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj-core" }
+jakarta-inject-api = { module = "jakarta.inject:jakarta.inject-api", version.ref = "jakarta-inject" }
+junit-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-pioneer = { module = "org.junit-pioneer:junit-pioneer", version.ref = "junit-pioneer" }
+sonar-plugin-api = { module = "org.sonarsource.api.plugin:sonar-plugin-api", version.ref = "sonar-plugin-api" }
+
+[plugins]
+jfrog-artifactory = { id = "com.jfrog.artifactory", version.ref = "jfrog" }
+license-format = { id = "com.github.hierynomus.license", version.ref = "license-format" }
+sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }

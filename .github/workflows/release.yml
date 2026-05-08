@@ -1,16 +1,27 @@
----
 name: Release
+
 on:
   release:
     types:
       - published
 
-env:
-  PYTHONUNBUFFERED: 1
-
 jobs:
+  get-visibility:
+    runs-on: github-ubuntu-latest-s
+    outputs:
+      visibility: ${{ steps.determine-visibility.outputs.visibility }}
+    steps:
+      - name: Determine release visibility
+        id: determine-visibility
+        run: |
+          echo "visibility=${{ startsWith(github.event.release.tag_name, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: get-visibility
     permissions:
       id-token: write
       contents: write
-    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@f610ee562da0eb743c378afb819f6bfb39e812cf # 6.2.1
+    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v6
+    with:
+      mavenCentralSync: ${{ needs.get-visibility.outputs.visibility == 'public' }}
+      publicRelease: ${{ needs.get-visibility.outputs.visibility == 'public' }}
