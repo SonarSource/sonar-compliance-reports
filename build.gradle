@@ -152,6 +152,6 @@ artifactory {
       publishIvy = false
     }
   }
-  clientConfig.info.setBuildName(System.getenv('BUILD_NAME'))
+  clientConfig.info.setBuildName('sonar-compliance-reports')
   clientConfig.info.setBuildNumber(System.getenv('BUILD_NUMBER'))
 }
