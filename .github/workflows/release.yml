@@ -4,24 +4,46 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to process, for example 2.0.0.383 or private-2.0.0.383
+        required: true
+        type: string
+      releaseId:
+        description: Existing GitHub release ID to reuse when retrying a kept release
+        required: true
+        type: string
 
 jobs:
-  get-visibility:
+  get-release-metadata:
     runs-on: github-ubuntu-latest-s
     outputs:
+      version: ${{ steps.determine-metadata.outputs.version }}
+      release_id: ${{ steps.determine-metadata.outputs.release_id }}
       visibility: ${{ steps.determine-visibility.outputs.visibility }}
     steps:
+      - name: Determine release version and id
+        id: determine-metadata
+        env:
+          VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
+          RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.releaseId || github.event.release.id }}
+        run: |
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
       - name: Determine release visibility
         id: determine-visibility
         run: |
-          echo "visibility=${{ startsWith(github.event.release.tag_name, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
+          echo "visibility=${{ startsWith(steps.determine-metadata.outputs.version, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
 
   release:
-    needs: get-visibility
+    needs: get-release-metadata
     permissions:
       id-token: write
       contents: write
     uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v6
     with:
-      mavenCentralSync: ${{ needs.get-visibility.outputs.visibility == 'public' }}
-      publicRelease: ${{ needs.get-visibility.outputs.visibility == 'public' }}
+      version: ${{ needs.get-release-metadata.outputs.version }}
+      releaseId: ${{ needs.get-release-metadata.outputs.release_id }}
+      mavenCentralSync: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
+      publicRelease: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
