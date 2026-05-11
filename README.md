@@ -30,3 +30,6 @@ Creating a GitHub release triggers `.github/workflows/release.yml`:
 1. Create a tag like `2.0.0.383` for a public release.
 2. Create a tag like `private-2.0.0.383` for an Artifactory-only release.
 3. Publish the GitHub release for that tag.
+
+If the shared release workflow keeps the GitHub release after a failure, rerun `.github/workflows/release.yml`
+from **Run workflow** with the `version` and `releaseId` values reported by the failed run.
