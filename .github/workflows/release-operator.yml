@@ -57,20 +57,25 @@ jobs:
             bash .github/scripts/find-promoted-build-url.sh --format=tsv "${sha}"
           }
 
+          is_default_branch_commit() {
+            local sha="$1"
+            git rev-list --first-parent "${default_ref}" | grep -Fxq "${sha}"
+          }
+
           if [[ -n "${INPUT_COMMIT_SHA}" ]]; then
             if ! target_sha="$(git rev-parse --verify "${INPUT_COMMIT_SHA}^{commit}" 2>/dev/null)"; then
               echo "::error title=Unknown commit::Unable to resolve commit ${INPUT_COMMIT_SHA}."
               exit 1
             fi
 
-            if ! git merge-base --is-ancestor "${target_sha}" "${default_ref}"; then
-              echo "::error title=Commit is not on the default branch::Commit ${target_sha} is not reachable from ${DEFAULT_BRANCH}."
+            if ! is_default_branch_commit "${target_sha}"; then
+              echo "::error title=Commit is not on the default branch::Commit ${target_sha} is not part of ${DEFAULT_BRANCH}'s first-parent history."
               exit 1
             fi
 
             IFS=$'\t' read -r promoted_build_url build_number <<< "$(promoted_build_metadata_for_sha "${target_sha}")"
             if [[ -z "${promoted_build_url}" ]]; then
-              echo "::error title=Commit is not promoted::Commit ${target_sha} is reachable from ${DEFAULT_BRANCH}, but it does not have a successful promoted build status."
+              echo "::error title=Commit is not promoted::Commit ${target_sha} is on ${DEFAULT_BRANCH}, but it does not have a successful promoted build status."
               exit 1
             fi
           else
@@ -86,7 +91,7 @@ jobs:
                 build_number="${candidate_build_number}"
                 break
               fi
-            done < <(git rev-list "${default_ref}")
+            done < <(git rev-list --first-parent "${default_ref}")
 
             if [[ -z "${target_sha}" ]]; then
               echo "::error title=No promoted commit found::Unable to find a successfully promoted commit reachable from ${DEFAULT_BRANCH}."
