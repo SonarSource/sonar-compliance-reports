@@ -1,0 +1,21 @@
+name: Release Core
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      releaseId:
+        required: true
+        type: string
+
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stub reusable workflow
+        run: |
+          echo "Stub release-core workflow for GitHub testing."
+          echo "version=${{ inputs.version }}"
+          echo "releaseId=${{ inputs.releaseId }}"

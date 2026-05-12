@@ -1,0 +1,30 @@
+name: Release Operator
+
+run-name: Stub release operator (${{ inputs.visibility || 'both' }})${{ inputs.commit_sha && format(' @ {0}', inputs.commit_sha) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Optional promoted default-branch commit SHA to release
+        required: false
+        type: string
+      visibility:
+        description: Which release visibility to process
+        required: false
+        default: both
+        type: choice
+        options:
+          - both
+          - private
+          - public
+
+jobs:
+  stub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stub workflow
+        run: |
+          echo "Stub release-operator workflow for GitHub testing."
+          echo "commit_sha=${{ inputs.commit_sha }}"
+          echo "visibility=${{ inputs.visibility }}"
