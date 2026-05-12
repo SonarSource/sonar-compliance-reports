@@ -13,13 +13,31 @@ success_marker='<!-- sonar-compliance-reports:release-success -->'
 operator_marker='<!-- sonar-compliance-reports:release-origin=operator -->'
 
 legacy_release_success() {
-  gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release.yml/runs?event=release&status=completed&per_page=100" |
-    jq -e --arg tag "${tag}" '
+  local page=1
+  local runs_json
+  local run_count
+
+  while :; do
+    runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release.yml/runs?event=release&status=success&per_page=100&page=${page}")"
+
+    if jq -e --arg tag "${tag}" '
       any(
         .workflow_runs[]?;
-        .conclusion == "success" and (.head_branch // "") == $tag
+        (.head_branch // "") == $tag
       )
-    ' >/dev/null
+    ' <<< "${runs_json}" >/dev/null; then
+      return 0
+    fi
+
+    run_count="$(jq -r '.workflow_runs | length' <<< "${runs_json}")"
+    if [[ "${run_count}" -lt 100 ]]; then
+      break
+    fi
+
+    page=$((page + 1))
+  done
+
+  return 1
 }
 
 if [[ -z "${GITHUB_OUTPUT:-}" ]]; then

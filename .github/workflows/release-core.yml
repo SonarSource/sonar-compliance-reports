@@ -55,7 +55,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.get-release-metadata.outputs.version }}
-          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
 
@@ -71,22 +70,18 @@ jobs:
           fi
           expected_build_number="${BASH_REMATCH[1]}"
 
-          status_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${tag_sha}/status")"
-          promoted_build_url="$(echo "${status_json}" | jq -r --arg repo "${REPO_NAME}" '
-            [
-              .statuses[]
-              | select(.state == "success")
-              | select(.target_url != null)
-              | select(.target_url | test("/ui/builds/" + $repo + "/[0-9]+/?$"))
-            ][0].target_url // empty
-          ')"
+          IFS=$'\t' read -r promoted_build_url promoted_build_number <<< "$(bash .github/scripts/find-promoted-build-url.sh --format=tsv "${tag_sha}")"
 
           if [[ -z "${promoted_build_url}" ]]; then
             echo "::error title=Missing promoted build::No successful promoted build status was found for ${tag_sha}. The release tag ${VERSION} must point to a commit that has already been promoted."
             exit 1
           fi
 
-          promoted_build_number="$(echo "${promoted_build_url}" | sed -E 's#.*\/ui\/builds\/[^/]+\/([0-9]+)\/?$#\1#')"
+          if [[ -z "${promoted_build_number}" ]]; then
+            echo "::error title=Invalid promoted build URL::Unable to extract the build number from ${promoted_build_url}."
+            exit 1
+          fi
+
           if [[ "${promoted_build_number}" != "${expected_build_number}" ]]; then
             echo "::error title=Release/promote mismatch::Tag ${VERSION} encodes build ${expected_build_number}, but commit ${tag_sha} is promoted as build ${promoted_build_number} (${promoted_build_url}). Retag the promoted build or release the matching promoted commit."
             exit 1

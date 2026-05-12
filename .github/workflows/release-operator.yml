@@ -46,26 +46,15 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
           INPUT_COMMIT_SHA: ${{ inputs.commit_sha }}
-          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
 
           git fetch --force --tags origin "${DEFAULT_BRANCH}"
           default_ref="origin/${DEFAULT_BRANCH}"
 
-          promoted_build_url_for_sha() {
+          promoted_build_metadata_for_sha() {
             local sha="$1"
-            local status_json
-
-            status_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${sha}/status")"
-            echo "${status_json}" | jq -r --arg repo "${REPO_NAME}" '
-              [
-                .statuses[]
-                | select(.state == "success")
-                | select(.target_url != null)
-                | select(.target_url | test("/ui/builds/" + $repo + "/[0-9]+/?$"))
-              ][0].target_url // empty
-            '
+            bash .github/scripts/find-promoted-build-url.sh --format=tsv "${sha}"
           }
 
           if [[ -n "${INPUT_COMMIT_SHA}" ]]; then
@@ -79,7 +68,7 @@ jobs:
               exit 1
             fi
 
-            promoted_build_url="$(promoted_build_url_for_sha "${target_sha}")"
+            IFS=$'\t' read -r promoted_build_url build_number <<< "$(promoted_build_metadata_for_sha "${target_sha}")"
             if [[ -z "${promoted_build_url}" ]]; then
               echo "::error title=Commit is not promoted::Commit ${target_sha} is reachable from ${DEFAULT_BRANCH}, but it does not have a successful promoted build status."
               exit 1
@@ -87,12 +76,14 @@ jobs:
           else
             target_sha=""
             promoted_build_url=""
+            build_number=""
 
             while read -r candidate_sha; do
-              candidate_url="$(promoted_build_url_for_sha "${candidate_sha}")"
+              IFS=$'\t' read -r candidate_url candidate_build_number <<< "$(promoted_build_metadata_for_sha "${candidate_sha}")"
               if [[ -n "${candidate_url}" ]]; then
                 target_sha="${candidate_sha}"
                 promoted_build_url="${candidate_url}"
+                build_number="${candidate_build_number}"
                 break
               fi
             done < <(git rev-list "${default_ref}")
@@ -103,7 +94,6 @@ jobs:
             fi
           fi
 
-          build_number="$(echo "${promoted_build_url}" | sed -E 's#.*\/ui\/builds\/[^/]+\/([0-9]+)\/?$#\1#')"
           if [[ -z "${build_number}" ]]; then
             echo "::error title=Invalid promoted build URL::Unable to extract the build number from ${promoted_build_url}."
             exit 1
@@ -181,7 +171,19 @@ jobs:
       releaseId: ${{ needs.prepare-private.outputs.release_id }}
 
   prepare-public:
-    if: ${{ always() && inputs.visibility != 'private' && (inputs.visibility != 'both' || (needs.prepare-private.result == 'success' && (needs.prepare-private.outputs.action == 'skip' || needs.release-private.result == 'success'))) }}
+    if: |
+      ${{
+        always()
+        && needs.resolve-target.result == 'success'
+        && inputs.visibility != 'private'
+        && (
+          inputs.visibility == 'public'
+          || (
+            needs.prepare-private.result == 'success'
+            && (needs.prepare-private.outputs.action == 'skip' || needs.release-private.result == 'success')
+          )
+        )
+      }}
     needs:
       - resolve-target
       - prepare-private
@@ -231,10 +233,12 @@ jobs:
       - name: Summarize release operator outcome
         env:
           INPUT_VISIBILITY: ${{ inputs.visibility }}
+          PRIVATE_ACTION: ${{ needs.prepare-private.outputs.action }}
           PRIVATE_PREPARE_RESULT: ${{ needs.prepare-private.result }}
           PRIVATE_RELEASE_RESULT: ${{ needs.release-private.result }}
           PRIVATE_STATUS_MESSAGE: ${{ needs.prepare-private.outputs.status_message }}
           PRIVATE_TAG: ${{ needs.resolve-target.outputs.private_tag }}
+          PUBLIC_ACTION: ${{ needs.prepare-public.outputs.action }}
           PUBLIC_PREPARE_RESULT: ${{ needs.prepare-public.result }}
           PUBLIC_RELEASE_ID: ${{ needs.prepare-public.outputs.release_id }}
           PUBLIC_RELEASE_RESULT: ${{ needs.release-public.result }}
@@ -246,10 +250,18 @@ jobs:
           {
             echo "## Release operator outcome"
             if [[ "${INPUT_VISIBILITY}" != "public" && -n "${PRIVATE_TAG}" ]]; then
-              echo "- Private \`${PRIVATE_TAG}\`: ${PRIVATE_STATUS_MESSAGE:-job ${PRIVATE_PREPARE_RESULT}}"
+              private_message="${PRIVATE_STATUS_MESSAGE:-job ${PRIVATE_PREPARE_RESULT}}"
+              if [[ "${PRIVATE_PREPARE_RESULT}" == "success" && "${PRIVATE_ACTION}" == "run" ]]; then
+                private_message+="; release job: ${PRIVATE_RELEASE_RESULT}"
+              fi
+              echo "- Private \`${PRIVATE_TAG}\`: ${private_message}"
             fi
             if [[ "${INPUT_VISIBILITY}" != "private" && -n "${PUBLIC_TAG}" ]]; then
-              echo "- Public \`${PUBLIC_TAG}\`: ${PUBLIC_STATUS_MESSAGE:-job ${PUBLIC_PREPARE_RESULT}}"
+              public_message="${PUBLIC_STATUS_MESSAGE:-job ${PUBLIC_PREPARE_RESULT}}"
+              if [[ "${PUBLIC_PREPARE_RESULT}" == "success" && "${PUBLIC_ACTION}" == "run" ]]; then
+                public_message+="; release job: ${PUBLIC_RELEASE_RESULT}"
+              fi
+              echo "- Public \`${PUBLIC_TAG}\`: ${public_message}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
