@@ -11,11 +11,113 @@ on:
         type: string
 
 jobs:
-  stub:
-    runs-on: ubuntu-latest
+  get-release-metadata:
+    runs-on: github-ubuntu-latest-s
+    outputs:
+      version: ${{ steps.determine-metadata.outputs.version }}
+      release_id: ${{ steps.determine-metadata.outputs.release_id }}
+      visibility: ${{ steps.determine-visibility.outputs.visibility }}
     steps:
-      - name: Stub reusable workflow
+      - name: Determine release version and id
+        id: determine-metadata
+        env:
+          VERSION: ${{ inputs.version }}
+          RELEASE_ID: ${{ inputs.releaseId }}
         run: |
-          echo "Stub release-core workflow for GitHub testing."
-          echo "version=${{ inputs.version }}"
-          echo "releaseId=${{ inputs.releaseId }}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Determine release visibility
+        id: determine-visibility
+        run: |
+          echo "visibility=${{ startsWith(inputs.version, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
+
+  verify-promoted-build:
+    needs: get-release-metadata
+    runs-on: github-ubuntu-latest-s
+    permissions:
+      contents: read
+      statuses: read
+    outputs:
+      tag_sha: ${{ steps.verify.outputs.tag_sha }}
+      build_number: ${{ steps.verify.outputs.build_number }}
+      promoted_build_url: ${{ steps.verify.outputs.promoted_build_url }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --force --tags origin
+
+      - name: Verify promoted build matches release tag
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.get-release-metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          tag_sha="$(git rev-list -n 1 "${VERSION}^{commit}")"
+          if [[ -z "${tag_sha}" ]]; then
+            echo "::error title=Tag lookup failed::Unable to resolve commit SHA for tag ${VERSION}."
+            exit 1
+          fi
+
+          if [[ ! "${VERSION}" =~ [.+-]([0-9]+)$ ]]; then
+            echo "::error title=Unsupported tag format::Release tag ${VERSION} does not end with a build number."
+            exit 1
+          fi
+          expected_build_number="${BASH_REMATCH[1]}"
+
+          IFS=$'\t' read -r promoted_build_url promoted_build_number <<< "$(bash .github/scripts/find-promoted-build-url.sh --format=tsv "${tag_sha}")"
+
+          if [[ -z "${promoted_build_url}" ]]; then
+            echo "::error title=Missing promoted build::No successful promoted build status was found for ${tag_sha}. The release tag ${VERSION} must point to a commit that has already been promoted."
+            exit 1
+          fi
+
+          if [[ -z "${promoted_build_number}" ]]; then
+            echo "::error title=Invalid promoted build URL::Unable to extract the build number from ${promoted_build_url}."
+            exit 1
+          fi
+
+          if [[ "${promoted_build_number}" != "${expected_build_number}" ]]; then
+            echo "::error title=Release/promote mismatch::Tag ${VERSION} encodes build ${expected_build_number}, but commit ${tag_sha} is promoted as build ${promoted_build_number} (${promoted_build_url}). Retag the promoted build or release the matching promoted commit."
+            exit 1
+          fi
+
+          echo "tag_sha=${tag_sha}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${promoted_build_number}" >> "$GITHUB_OUTPUT"
+          echo "promoted_build_url=${promoted_build_url}" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs:
+      - get-release-metadata
+      - verify-promoted-build
+    permissions:
+      id-token: write
+      contents: write
+    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v6
+    with:
+      version: ${{ needs.get-release-metadata.outputs.version }}
+      releaseId: ${{ needs.get-release-metadata.outputs.release_id }}
+      mavenCentralSync: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
+      publicRelease: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
+
+  mark-release-success:
+    needs:
+      - get-release-metadata
+      - release
+    if: ${{ needs.release.result == 'success' }}
+    permissions:
+      contents: write
+    runs-on: github-ubuntu-latest-s
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Mark release as successfully processed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.get-release-metadata.outputs.release_id }}
+        run: bash .github/scripts/mark-release-success.sh "${RELEASE_ID}"
