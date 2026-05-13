@@ -1,5 +1,7 @@
 name: Release
 
+run-name: Release ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
+
 on:
   release:
     types:
@@ -15,35 +17,16 @@ on:
         required: true
         type: string
 
-jobs:
-  get-release-metadata:
-    runs-on: github-ubuntu-latest-s
-    outputs:
-      version: ${{ steps.determine-metadata.outputs.version }}
-      release_id: ${{ steps.determine-metadata.outputs.release_id }}
-      visibility: ${{ steps.determine-visibility.outputs.visibility }}
-    steps:
-      - name: Determine release version and id
-        id: determine-metadata
-        env:
-          VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
-          RELEASE_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.releaseId || github.event.release.id }}
-        run: |
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
-      - name: Determine release visibility
-        id: determine-visibility
-        run: |
-          echo "visibility=${{ startsWith(steps.determine-metadata.outputs.version, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
+permissions:
+  contents: write
+  id-token: write
+  statuses: read
 
+jobs:
   release:
-    needs: get-release-metadata
-    permissions:
-      id-token: write
-      contents: write
-    uses: SonarSource/gh-action_release/.github/workflows/main.yaml@v6
+    if: ${{ github.event_name != 'release' || !contains(format('{0}', github.event.release.body), '<!-- sonar-compliance-reports:release-origin=operator -->') }}
+    uses: ./.github/workflows/release-core.yml
+    secrets: inherit
     with:
-      version: ${{ needs.get-release-metadata.outputs.version }}
-      releaseId: ${{ needs.get-release-metadata.outputs.release_id }}
-      mavenCentralSync: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
-      publicRelease: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
+      version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
+      releaseId: ${{ github.event_name == 'workflow_dispatch' && inputs.releaseId || github.event.release.id }}
