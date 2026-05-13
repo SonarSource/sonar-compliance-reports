@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          tag_sha="$(git rev-list -n 1 "${VERSION}")"
+          tag_sha="$(git rev-list -n 1 "${VERSION}^{commit}")"
           if [[ -z "${tag_sha}" ]]; then
             echo "::error title=Tag lookup failed::Unable to resolve commit SHA for tag ${VERSION}."
             exit 1
