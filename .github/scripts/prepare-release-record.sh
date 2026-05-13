@@ -51,7 +51,7 @@ if git rev-parse -q --verify "refs/tags/${tag}^{commit}" >/dev/null 2>&1; then
 fi
 
 if [[ -n "${tag_sha}" && "${tag_sha}" != "${target_sha}" ]]; then
-  echo "::error title=Existing tag points to the wrong commit::Tag ${tag} already points to ${tag_sha}, but the operator resolved ${target_sha}."
+  echo "::error title=Existing tag points to the wrong commit::Tag ${tag} already points to ${tag_sha}, but the operator resolved ${target_sha}." >&2
   exit 1
 fi
 
@@ -68,7 +68,7 @@ if release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" 2>/d
   fi
 
   if grep -Fq "${operator_marker}" <<< "${release_body}"; then
-    echo "::error title=Existing release requires rerun::GitHub release ${tag} already exists as id ${release_id}, but the previous operator run did not finish successfully. Use the Release workflow rerun path with version=${tag} and releaseId=${release_id}."
+    echo "::error title=Existing release requires rerun::GitHub release ${tag} already exists as id ${release_id}, but the previous operator run did not finish successfully. Use the Release workflow rerun path with version=${tag} and releaseId=${release_id}." >&2
     exit 1
   fi
 
@@ -80,7 +80,7 @@ if release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" 2>/d
     exit 0
   fi
 
-  echo "::error title=Existing release requires rerun::GitHub release ${tag} already exists as id ${release_id}, but no successful prior release marker was found. Use the Release workflow rerun path with version=${tag} and releaseId=${release_id}."
+  echo "::error title=Existing release requires rerun::GitHub release ${tag} already exists as id ${release_id}, but no successful prior release marker was found. Use the Release workflow rerun path with version=${tag} and releaseId=${release_id}." >&2
   exit 1
 fi
 
@@ -107,12 +107,12 @@ cleanup_create_release_files() {
   rm -f "${create_release_response_file}" "${create_release_stderr_file}"
 }
 
-if gh api --verbose --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - >"${create_release_response_file}" 2>"${create_release_stderr_file}" <<< "${payload}"; then
+if GH_DEBUG=api gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - >"${create_release_response_file}" 2>"${create_release_stderr_file}" <<< "${payload}"; then
   release_json="$(cat "${create_release_response_file}")"
   cleanup_create_release_files
 else
   status=$?
-  echo "::error title=Release creation failed::GitHub rejected release ${tag} for ${target_sha} with exit code ${status}."
+  echo "::error title=Release creation failed::GitHub rejected release ${tag} for ${target_sha} with exit code ${status}." >&2
   echo "::group::Release creation payload"
   printf '%s\n' "${payload}"
   echo "::endgroup::"
