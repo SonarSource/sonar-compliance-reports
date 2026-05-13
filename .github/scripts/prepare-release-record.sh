@@ -100,7 +100,34 @@ payload="$(jq -n \
   }'
 )"
 
-release_json="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - <<< "${payload}")"
+create_release_response_file="$(mktemp)"
+create_release_stderr_file="$(mktemp)"
+
+cleanup_create_release_files() {
+  rm -f "${create_release_response_file}" "${create_release_stderr_file}"
+}
+
+if gh api --verbose --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - >"${create_release_response_file}" 2>"${create_release_stderr_file}" <<< "${payload}"; then
+  release_json="$(cat "${create_release_response_file}")"
+  cleanup_create_release_files
+else
+  status=$?
+  echo "::error title=Release creation failed::GitHub rejected release ${tag} for ${target_sha} with exit code ${status}."
+  echo "::group::Release creation payload"
+  printf '%s\n' "${payload}"
+  echo "::endgroup::"
+  echo "::group::gh api stderr"
+  cat "${create_release_stderr_file}" >&2
+  echo "::endgroup::"
+  if [[ -s "${create_release_response_file}" ]]; then
+    echo "::group::GitHub API response body"
+    cat "${create_release_response_file}"
+    echo "::endgroup::"
+  fi
+  cleanup_create_release_files
+  exit "${status}"
+fi
+
 release_id="$(jq -r '.id' <<< "${release_json}")"
 
 echo "action=run" >> "${GITHUB_OUTPUT}"
