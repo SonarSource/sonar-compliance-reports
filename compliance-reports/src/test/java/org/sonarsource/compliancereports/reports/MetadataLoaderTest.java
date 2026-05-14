@@ -34,6 +34,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MetadataLoaderTest {
 
+  @Test
+  void shouldLoadEmptyMetadataIfNoneExists() {
+    var underTest = new MetadataLoader(Set.of());
+    assertThat(underTest.getAllMetadata()).isEmpty();
+  }
+
   @Nested
   class WhenGettingMetadataAsString {
     @Test
@@ -43,12 +49,6 @@ class MetadataLoaderTest {
       assertThatThrownBy(() -> new MetadataLoader(metadataTypes))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Unable to load metadata: NonExistentFile.yml");
-    }
-
-    @Test
-    void shouldLoadEmptyMetadataIfNoneExists() {
-      var underTest = new MetadataLoader(Set.of());
-      assertThat(underTest.getAllMetadata()).isEmpty();
     }
 
     @Test
