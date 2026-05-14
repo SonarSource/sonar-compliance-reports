@@ -107,7 +107,7 @@ cleanup_create_release_files() {
   rm -f "${create_release_response_file}" "${create_release_stderr_file}"
 }
 
-if gh api --verbose --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - >"${create_release_response_file}" 2>"${create_release_stderr_file}" <<< "${payload}"; then
+if GH_DEBUG=api gh api --method POST "repos/${GITHUB_REPOSITORY}/releases" --input - >"${create_release_response_file}" 2>"${create_release_stderr_file}" <<< "${payload}"; then
   release_json="$(cat "${create_release_response_file}")"
   cleanup_create_release_files
 else
