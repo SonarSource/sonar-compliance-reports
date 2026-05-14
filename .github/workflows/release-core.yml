@@ -16,7 +16,6 @@ jobs:
     outputs:
       version: ${{ steps.determine-metadata.outputs.version }}
       release_id: ${{ steps.determine-metadata.outputs.release_id }}
-      visibility: ${{ steps.determine-visibility.outputs.visibility }}
     steps:
       - name: Determine release version and id
         id: determine-metadata
@@ -27,10 +26,14 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
 
-      - name: Determine release visibility
-        id: determine-visibility
+      - name: Reject unsupported private release tags
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          echo "visibility=${{ startsWith(inputs.version, 'private-') && 'private' || 'public' }}" >> "$GITHUB_OUTPUT"
+          if [[ "${VERSION}" == private-* ]]; then
+            echo "::error title=Private releases are not supported::Release tag ${VERSION} uses the retired private release path."
+            exit 1
+          fi
 
   verify-promoted-build:
     needs: get-release-metadata
@@ -102,8 +105,8 @@ jobs:
     with:
       version: ${{ needs.get-release-metadata.outputs.version }}
       releaseId: ${{ needs.get-release-metadata.outputs.release_id }}
-      mavenCentralSync: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
-      publicRelease: ${{ needs.get-release-metadata.outputs.visibility == 'public' }}
+      mavenCentralSync: true
+      publicRelease: true
 
   mark-release-success:
     needs:

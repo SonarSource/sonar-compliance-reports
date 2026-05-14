@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release tag to process, for example 2.0.0.383 or private-2.0.0.383
+        description: Release tag to process, for example 2.0.0.383
         required: true
         type: string
       releaseId:
