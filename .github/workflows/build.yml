@@ -73,6 +73,7 @@ jobs:
       - uses: SonarSource/ci-github-actions/promote@v1
         with:
           promote-pull-request: true
+          build-name: sonar-compliance-reports
       - name: Publish release information
         if: ${{ github.event_name == 'push' && github.ref_name == github.event.repository.default_branch }}
         run: |
