@@ -215,7 +215,7 @@ jobs:
         run: bash .github/scripts/prepare-release-record.sh "${TAG}" "${TARGET_SHA}"
 
   release-public:
-    if: ${{ needs.prepare-public.outputs.action == 'run' }}
+    if: ${{ always() && needs.prepare-public.result == 'success' && needs.prepare-public.outputs.action == 'run' }}
     needs:
       - resolve-target
       - prepare-public
