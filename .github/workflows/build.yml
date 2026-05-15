@@ -88,8 +88,7 @@ jobs:
           release_version="$(bash .github/scripts/derive-release-version.sh "${module_version}" "${BUILD_NUMBER}")"
 
           project_name="${GITHUB_REPOSITORY#*/}"
-          public_tag="${release_version}"
-          private_tag="private-${release_version}"
+          release_tag="${release_version}"
           artifactory_build_url="https://repox.jfrog.io/ui/builds/${project_name}/${BUILD_NUMBER}/"
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
@@ -98,9 +97,8 @@ jobs:
           - Commit: \`${GITHUB_SHA}\`
           - Build number: \`${BUILD_NUMBER}\`
           - Release version: \`${release_version}\`
-          - Private release tag: \`${private_tag}\`
-          - Public release tag: \`${public_tag}\`
+          - Release tag: \`${release_tag}\`
           - Artifactory build: [\`${project_name}:${BUILD_NUMBER}\`](${artifactory_build_url})
           EOF
 
-          echo "::notice title=Release information::build=${BUILD_NUMBER}, version=${release_version}, private_tag=${private_tag}, public_tag=${public_tag}"
+          echo "::notice title=Release information::build=${BUILD_NUMBER}, version=${release_version}, release_tag=${release_tag}"

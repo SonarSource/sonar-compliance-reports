@@ -1,6 +1,6 @@
 name: Release Operator
 
-run-name: One-click release (${{ inputs.visibility || 'both' }})${{ inputs.commit_sha && format(' @ {0}', inputs.commit_sha) || '' }}
+run-name: One-click release${{ inputs.commit_sha && format(' @ {0}', inputs.commit_sha) || '' }}
 
 on:
   workflow_dispatch:
@@ -9,18 +9,8 @@ on:
         description: Optional promoted default-branch commit SHA to release
         required: false
         type: string
-      visibility:
-        description: Which release visibility to process
-        required: false
-        default: both
-        type: choice
-        options:
-          - both
-          - private
-          - public
 
 permissions:
-  actions: read
   contents: write
   id-token: write
   statuses: read
@@ -33,8 +23,7 @@ jobs:
       build_number: ${{ steps.resolve.outputs.build_number }}
       promoted_build_url: ${{ steps.resolve.outputs.promoted_build_url }}
       release_version: ${{ steps.resolve.outputs.release_version }}
-      private_tag: ${{ steps.resolve.outputs.private_tag }}
-      public_tag: ${{ steps.resolve.outputs.public_tag }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -117,16 +106,14 @@ jobs:
           fi
 
           release_version="$(bash .github/scripts/derive-release-version.sh "${module_version}" "${build_number}")"
-          private_tag="private-${release_version}"
-          public_tag="${release_version}"
+          release_tag="${release_version}"
 
           {
             echo "target_sha=${target_sha}"
             echo "build_number=${build_number}"
             echo "promoted_build_url=${promoted_build_url}"
             echo "release_version=${release_version}"
-            echo "private_tag=${private_tag}"
-            echo "public_tag=${public_tag}"
+            echo "release_tag=${release_tag}"
           } >> "$GITHUB_OUTPUT"
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
@@ -135,13 +122,11 @@ jobs:
           - Commit: \`${target_sha}\`
           - Build number: \`${build_number}\`
           - Release version: \`${release_version}\`
-          - Private tag: \`${private_tag}\`
-          - Public tag: \`${public_tag}\`
+          - Release tag: \`${release_tag}\`
           - Promoted build: ${promoted_build_url}
           EOF
 
-  prepare-private:
-    if: ${{ inputs.visibility != 'public' }}
+  prepare-release:
     needs: resolve-target
     runs-on: github-ubuntu-latest-s
     outputs:
@@ -156,120 +141,50 @@ jobs:
       - name: Fetch tags
         run: git fetch --force --tags origin
 
-      - name: Prepare private release record
+      - name: Prepare release record
         id: prepare
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.resolve-target.outputs.private_tag }}
+          TAG: ${{ needs.resolve-target.outputs.release_tag }}
           TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
         run: bash .github/scripts/prepare-release-record.sh "${TAG}" "${TARGET_SHA}"
 
-  release-private:
-    if: ${{ needs.prepare-private.outputs.action == 'run' }}
+  release:
+    if: ${{ needs.prepare-release.outputs.action == 'run' }}
     needs:
       - resolve-target
-      - prepare-private
+      - prepare-release
     uses: ./.github/workflows/release-core.yml
     secrets: inherit
     with:
-      version: ${{ needs.resolve-target.outputs.private_tag }}
-      releaseId: ${{ needs.prepare-private.outputs.release_id }}
-
-  prepare-public:
-    if: |
-      ${{
-        always()
-        && needs.resolve-target.result == 'success'
-        && inputs.visibility != 'private'
-        && (
-          inputs.visibility == 'public'
-          || (
-            needs.prepare-private.result == 'success'
-            && (needs.prepare-private.outputs.action == 'skip' || needs.release-private.result == 'success')
-          )
-        )
-      }}
-    needs:
-      - resolve-target
-      - prepare-private
-      - release-private
-    runs-on: github-ubuntu-latest-s
-    outputs:
-      action: ${{ steps.prepare.outputs.action }}
-      release_id: ${{ steps.prepare.outputs.release_id }}
-      status_message: ${{ steps.prepare.outputs.status_message }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          fetch-depth: 0
-
-      - name: Fetch tags
-        run: git fetch --force --tags origin
-
-      - name: Prepare public release record
-        id: prepare
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.resolve-target.outputs.public_tag }}
-          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
-        run: bash .github/scripts/prepare-release-record.sh "${TAG}" "${TARGET_SHA}"
-
-  release-public:
-    if: ${{ always() && needs.prepare-public.result == 'success' && needs.prepare-public.outputs.action == 'run' }}
-    needs:
-      - resolve-target
-      - prepare-public
-    uses: ./.github/workflows/release-core.yml
-    secrets: inherit
-    with:
-      version: ${{ needs.resolve-target.outputs.public_tag }}
-      releaseId: ${{ needs.prepare-public.outputs.release_id }}
+      version: ${{ needs.resolve-target.outputs.release_tag }}
+      releaseId: ${{ needs.prepare-release.outputs.release_id }}
 
   summarize:
     if: ${{ always() }}
     needs:
       - resolve-target
-      - prepare-private
-      - release-private
-      - prepare-public
-      - release-public
+      - prepare-release
+      - release
     runs-on: github-ubuntu-latest-s
     steps:
       - name: Summarize release operator outcome
         env:
-          INPUT_VISIBILITY: ${{ inputs.visibility }}
-          PRIVATE_ACTION: ${{ needs.prepare-private.outputs.action }}
-          PRIVATE_PREPARE_RESULT: ${{ needs.prepare-private.result }}
-          PRIVATE_RELEASE_RESULT: ${{ needs.release-private.result }}
-          PRIVATE_STATUS_MESSAGE: ${{ needs.prepare-private.outputs.status_message }}
-          PRIVATE_TAG: ${{ needs.resolve-target.outputs.private_tag }}
-          PUBLIC_ACTION: ${{ needs.prepare-public.outputs.action }}
-          PUBLIC_PREPARE_RESULT: ${{ needs.prepare-public.result }}
-          PUBLIC_RELEASE_ID: ${{ needs.prepare-public.outputs.release_id }}
-          PUBLIC_RELEASE_RESULT: ${{ needs.release-public.result }}
-          PUBLIC_STATUS_MESSAGE: ${{ needs.prepare-public.outputs.status_message }}
-          PUBLIC_TAG: ${{ needs.resolve-target.outputs.public_tag }}
+          PREPARE_ACTION: ${{ needs.prepare-release.outputs.action }}
+          PREPARE_RESULT: ${{ needs.prepare-release.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+          STATUS_MESSAGE: ${{ needs.prepare-release.outputs.status_message }}
+          RELEASE_TAG: ${{ needs.resolve-target.outputs.release_tag }}
         run: |
           set -euo pipefail
 
           {
             echo "## Release operator outcome"
-            if [[ "${INPUT_VISIBILITY}" != "public" && -n "${PRIVATE_TAG}" ]]; then
-              private_message="${PRIVATE_STATUS_MESSAGE:-job ${PRIVATE_PREPARE_RESULT}}"
-              if [[ "${PRIVATE_PREPARE_RESULT}" == "success" && "${PRIVATE_ACTION}" == "run" ]]; then
-                private_message+="; release job: ${PRIVATE_RELEASE_RESULT}"
+            if [[ -n "${RELEASE_TAG}" ]]; then
+              release_message="${STATUS_MESSAGE:-job ${PREPARE_RESULT}}"
+              if [[ "${PREPARE_RESULT}" == "success" && "${PREPARE_ACTION}" == "run" ]]; then
+                release_message+="; release job: ${RELEASE_RESULT}"
               fi
-              echo "- Private \`${PRIVATE_TAG}\`: ${private_message}"
-            fi
-            if [[ "${INPUT_VISIBILITY}" != "private" && -n "${PUBLIC_TAG}" ]]; then
-              public_message="${PUBLIC_STATUS_MESSAGE:-job ${PUBLIC_PREPARE_RESULT}}"
-              if [[ "${PUBLIC_PREPARE_RESULT}" == "success" && "${PUBLIC_ACTION}" == "run" ]]; then
-                public_message+="; release job: ${PUBLIC_RELEASE_RESULT}"
-              fi
-              echo "- Public \`${PUBLIC_TAG}\`: ${public_message}"
+              echo "- Release \`${RELEASE_TAG}\`: ${release_message}"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-
-          if [[ "${INPUT_VISIBILITY}" == "both" && "${PRIVATE_RELEASE_RESULT}" == "success" && "${PUBLIC_RELEASE_RESULT}" == "failure" ]]; then
-            echo "::warning title=Partial release::Private release ${PRIVATE_TAG} succeeded, but public release ${PUBLIC_TAG} failed. Use the Release workflow rerun path with version=${PUBLIC_TAG} and releaseId=${PUBLIC_RELEASE_ID}."
-          fi
