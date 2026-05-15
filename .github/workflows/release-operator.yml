@@ -11,6 +11,8 @@ on:
         type: string
 
 permissions:
+  actions: write
+  checks: read
   contents: write
   id-token: write
   statuses: read
@@ -154,11 +156,24 @@ jobs:
     needs:
       - resolve-target
       - prepare-release
-    uses: ./.github/workflows/release-core.yml
-    secrets: inherit
-    with:
-      version: ${{ needs.resolve-target.outputs.release_tag }}
-      releaseId: ${{ needs.prepare-release.outputs.release_id }}
+    runs-on: github-ubuntu-latest-s
+    outputs:
+      run_id: ${{ steps.dispatch.outputs.run_id }}
+      run_url: ${{ steps.dispatch.outputs.run_url }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Dispatch release workflow
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/dispatch-release-workflow.sh "${{ needs.resolve-target.outputs.release_tag }}" "${{ needs.prepare-release.outputs.release_id }}"
+
+      - name: Show failed release logs
+        if: ${{ failure() && steps.dispatch.outputs.run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run view "${{ steps.dispatch.outputs.run_id }}" --log-failed
 
   summarize:
     if: ${{ always() }}
@@ -173,6 +188,7 @@ jobs:
           PREPARE_ACTION: ${{ needs.prepare-release.outputs.action }}
           PREPARE_RESULT: ${{ needs.prepare-release.result }}
           RELEASE_RESULT: ${{ needs.release.result }}
+          RELEASE_RUN_URL: ${{ needs.release.outputs.run_url }}
           STATUS_MESSAGE: ${{ needs.prepare-release.outputs.status_message }}
           RELEASE_TAG: ${{ needs.resolve-target.outputs.release_tag }}
         run: |
@@ -184,6 +200,9 @@ jobs:
               release_message="${STATUS_MESSAGE:-job ${PREPARE_RESULT}}"
               if [[ "${PREPARE_RESULT}" == "success" && "${PREPARE_ACTION}" == "run" ]]; then
                 release_message+="; release job: ${RELEASE_RESULT}"
+                if [[ -n "${RELEASE_RUN_URL:-}" ]]; then
+                  release_message+=" (${RELEASE_RUN_URL})"
+                fi
               fi
               echo "- Release \`${RELEASE_TAG}\`: ${release_message}"
             fi
