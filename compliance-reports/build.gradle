@@ -1,0 +1,108 @@
+plugins {
+  id 'java-library'
+}
+
+dependencies {
+  implementation libs.jakarta.inject.api
+  implementation libs.sonar.plugin.api
+  implementation mn.jsr305
+  implementation mn.jackson.core
+  implementation mn.jackson.databind
+  implementation mn.jackson.dataformat.yaml
+
+  testImplementation libs.junit.pioneer
+  testImplementation mn.assertj.core
+  testImplementation mn.logback.classic
+  testImplementation mn.logback.core
+  testImplementation mn.micronaut.test.junit5
+  testImplementation mn.mockito.core
+  testImplementation mn.mockito.junit.jupiter
+
+  testRuntimeOnly libs.junit.engine
+}
+
+ext {
+  release = project.hasProperty('release') && project.getProperty('release')
+  buildNumber = System.getProperty("buildNumber")
+}
+// Replaces the version defined in sources, usually x.y-SNAPSHOT, by a version identifying the build.
+if (version.endsWith('-SNAPSHOT') && ext.buildNumber != null) {
+  def versionSuffix = (version.toString().count('.') == 1 ? ".0.${ext.buildNumber}" : ".${ext.buildNumber}")
+  version = version.replace('-SNAPSHOT', versionSuffix)
+}
+
+license {
+  header = file("$projectDir/HEADER")
+}
+
+tasks.withType(Javadoc) {
+  options.addStringOption('Xdoclint:none', '-quiet')
+  options.encoding = 'UTF-8'
+}
+
+tasks.register('sourcesJar', Jar) {
+  dependsOn classes
+  archiveClassifier = 'sources'
+  from sourceSets.main.allSource
+}
+
+tasks.register('javadocJar', Jar) {
+  dependsOn javadoc
+  archiveClassifier = 'javadoc'
+  from javadoc.destinationDir
+}
+
+tasks.withType(Jar).configureEach {
+  from('LICENSE') {
+    into('')
+  }
+}
+
+artifactoryPublish.skip = false
+
+publishing {
+  publications {
+    service(MavenPublication) {
+      artifactId = 'compliance-reports'
+      pom {
+        name = 'Compliance Reports'
+        description = project.description
+        url = 'https://www.sonarqube.org/'
+        organization {
+          name = 'SonarSource'
+          url = 'https://www.sonarsource.com/'
+        }
+        licenses {
+          license {
+            name = 'GNU LGPL 3'
+            url = 'https://www.gnu.org/licenses/lgpl-3.0.txt'
+            distribution = 'repo'
+          }
+        }
+        scm {
+          url = 'https://github.com/SonarSource/sonarcloud-software-quality-reports'
+        }
+        developers {
+          developer {
+            id = 'sonarsource-team'
+            name = 'SonarSource Team'
+          }
+        }
+      }
+      from components.java
+      artifact sourcesJar
+      artifact javadocJar
+    }
+  }
+}
+
+// publish a Java 17-compatible library
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(17)
+  }
+}
+
+test {
+  useJUnitPlatform()
+}
