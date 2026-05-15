@@ -96,7 +96,7 @@ payload="$(jq -n \
     body: $body,
     draft: false,
     prerelease: false,
-    generate_release_notes: false
+    generate_release_notes: true
   }'
 )"
 
