@@ -218,8 +218,8 @@ wrapper_user=${ARTIFACTORY_USERNAME:-${ARTIFACTORY_ACCESS_USERNAME:-}}
 wrapper_password=${ARTIFACTORY_PASSWORD:-${ARTIFACTORY_ACCESS_TOKEN:-}}
 if [ -n "$wrapper_user" ] && [ -n "$wrapper_password" ]; then
     set -- \
-        "-Dgradle.repox_jfrog_io.wrapperUser=$wrapper_user" \
-        "-Dgradle.repox_jfrog_io.wrapperPassword=$wrapper_password" \
+        "-Dgradle.wrapperUser=$wrapper_user" \
+        "-Dgradle.wrapperPassword=$wrapper_password" \
         "$@"
 fi
 

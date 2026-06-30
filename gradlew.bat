@@ -38,8 +38,8 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 set WRAPPER_AUTH_OPTS=
-if defined ARTIFACTORY_USERNAME if defined ARTIFACTORY_PASSWORD set WRAPPER_AUTH_OPTS="-Dgradle.repox_jfrog_io.wrapperUser=%ARTIFACTORY_USERNAME%" "-Dgradle.repox_jfrog_io.wrapperPassword=%ARTIFACTORY_PASSWORD%"
-if not defined WRAPPER_AUTH_OPTS if defined ARTIFACTORY_ACCESS_USERNAME if defined ARTIFACTORY_ACCESS_TOKEN set WRAPPER_AUTH_OPTS="-Dgradle.repox_jfrog_io.wrapperUser=%ARTIFACTORY_ACCESS_USERNAME%" "-Dgradle.repox_jfrog_io.wrapperPassword=%ARTIFACTORY_ACCESS_TOKEN%"
+if defined ARTIFACTORY_USERNAME if defined ARTIFACTORY_PASSWORD set WRAPPER_AUTH_OPTS="-Dgradle.wrapperUser=%ARTIFACTORY_USERNAME%" "-Dgradle.wrapperPassword=%ARTIFACTORY_PASSWORD%"
+if not defined WRAPPER_AUTH_OPTS if defined ARTIFACTORY_ACCESS_USERNAME if defined ARTIFACTORY_ACCESS_TOKEN set WRAPPER_AUTH_OPTS="-Dgradle.wrapperUser=%ARTIFACTORY_ACCESS_USERNAME%" "-Dgradle.wrapperPassword=%ARTIFACTORY_ACCESS_TOKEN%"
 
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
