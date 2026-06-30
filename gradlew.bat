@@ -37,6 +37,9 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
+set WRAPPER_AUTH_OPTS=
+if defined ARTIFACTORY_USERNAME if defined ARTIFACTORY_PASSWORD set WRAPPER_AUTH_OPTS="-Dgradle.repox_jfrog_io.wrapperUser=%ARTIFACTORY_USERNAME%" "-Dgradle.repox_jfrog_io.wrapperPassword=%ARTIFACTORY_PASSWORD%"
+if not defined WRAPPER_AUTH_OPTS if defined ARTIFACTORY_ACCESS_USERNAME if defined ARTIFACTORY_ACCESS_TOKEN set WRAPPER_AUTH_OPTS="-Dgradle.repox_jfrog_io.wrapperUser=%ARTIFACTORY_ACCESS_USERNAME%" "-Dgradle.repox_jfrog_io.wrapperPassword=%ARTIFACTORY_ACCESS_TOKEN%"
 
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
@@ -74,7 +77,7 @@ set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
 
 @rem Execute Gradle
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% %WRAPPER_AUTH_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
 
 :end
 @rem End local scope for the variables with windows NT shell

@@ -214,6 +214,15 @@ set -- \
         org.gradle.wrapper.GradleWrapperMain \
         "$@"
 
+wrapper_user=${ARTIFACTORY_USERNAME:-${ARTIFACTORY_ACCESS_USERNAME:-}}
+wrapper_password=${ARTIFACTORY_PASSWORD:-${ARTIFACTORY_ACCESS_TOKEN:-}}
+if [ -n "$wrapper_user" ] && [ -n "$wrapper_password" ]; then
+    set -- \
+        "-Dgradle.repox_jfrog_io.wrapperUser=$wrapper_user" \
+        "-Dgradle.repox_jfrog_io.wrapperPassword=$wrapper_password" \
+        "$@"
+fi
+
 # Stop when "xargs" is not available.
 if ! command -v xargs >/dev/null 2>&1
 then
