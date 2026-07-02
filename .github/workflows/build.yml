@@ -58,6 +58,7 @@ jobs:
   promote:
     needs:
       - build
+    if: github.event_name != 'pull_request'
     runs-on: github-ubuntu-latest-s
     name: Promote
     permissions:
