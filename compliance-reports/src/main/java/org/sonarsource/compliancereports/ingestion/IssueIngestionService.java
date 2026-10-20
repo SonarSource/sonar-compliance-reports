@@ -33,7 +33,7 @@ public class IssueIngestionService {
 
   private enum IssueStatus {
     TO_REVIEW,
-    OPEN
+    REVIEWED
   }
 
   private final IssueStatsByRuleKeyDao issueStatsByRuleKeyDao;
@@ -71,7 +71,7 @@ public class IssueIngestionService {
       if (issue.isHotspot()) {
         if (IssueStatus.TO_REVIEW.toString().equals(issue.status())) {
           hotspotsToReview++;
-        } else {
+        } else if (IssueStatus.REVIEWED.toString().equals(issue.status())) {
           hotspotsReviewed++;
         }
       } else {
@@ -95,7 +95,7 @@ public class IssueIngestionService {
       .orElse(new IssueStats(ruleKey, 0, 1, 1, 0, 0));
 
     var updatedIssueStats = new IssueStats(issueStats.ruleKey(), 0, issueStats.rating(), issueStats.mqrRating(),
-      issueStats.hotspotCount() + adjustment, issueStats.hotspotsReviewed() - adjustment);
+      Math.max(0, issueStats.hotspotCount() + adjustment), Math.max(0, issueStats.hotspotsReviewed() - adjustment));
     if (updatedIssueStats.issueCount() != 0 || updatedIssueStats.hotspotCount() != 0 || updatedIssueStats.hotspotsReviewed() != 0) {
       issueStatsByRuleKeyDao.upsert(aggregationId, aggregationType, updatedIssueStats);
     } else {
@@ -122,7 +122,7 @@ public class IssueIngestionService {
   }
 
   private IssueStats getUpdatedIssueStats(String aggregationId, String ruleKey, IssueStats oldStats, int adjustment) {
-    int newIssueCount = oldStats.issueCount() + adjustment;
+    int newIssueCount = Math.max(0, oldStats.issueCount() + adjustment);
     if (newIssueCount == 0) {
       return new IssueStats(oldStats.ruleKey(), newIssueCount, 1, 1, 0, 0);
     }
