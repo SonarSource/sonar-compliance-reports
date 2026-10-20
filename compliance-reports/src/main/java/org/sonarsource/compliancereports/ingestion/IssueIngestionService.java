@@ -20,9 +20,7 @@
 package org.sonarsource.compliancereports.ingestion;
 
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.sonarsource.compliancereports.dao.AggregationType;
 import org.sonarsource.compliancereports.dao.IssueStats;
@@ -51,13 +49,11 @@ public class IssueIngestionService {
   }
 
   private static List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {
-    List<IssueStats> results = new ArrayList<>();
-    Map<String, List<IssueFromAnalysis>> issuesByRuleKey = issueData.stream()
-      .collect(Collectors.groupingBy(IssueFromAnalysis::ruleKey));
-    for (Map.Entry<String, List<IssueFromAnalysis>> entry : issuesByRuleKey.entrySet()) {
-      results.add(calculateIssueStatsForIssuesWithRule(entry.getKey(), entry.getValue()));
-    }
-    return results;
+    return issueData.stream()
+      .collect(Collectors.groupingBy(IssueFromAnalysis::ruleKey))
+      .entrySet().stream()
+      .map(entry -> calculateIssueStatsForIssuesWithRule(entry.getKey(), entry.getValue()))
+      .toList();
   }
 
   private static IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
