@@ -90,8 +90,10 @@ public class IssueIngestionService {
       .findFirst()
       .orElse(new IssueStats(ruleKey, 0, 1, 1, 0, 0));
 
+    // Bound the transfer by the available counts so neither side goes negative and the total hotspot count is preserved
+    int effectiveAdjustment = Math.max(-issueStats.hotspotCount(), Math.min(adjustment, issueStats.hotspotsReviewed()));
     var updatedIssueStats = new IssueStats(issueStats.ruleKey(), 0, issueStats.rating(), issueStats.mqrRating(),
-      Math.max(0, issueStats.hotspotCount() + adjustment), Math.max(0, issueStats.hotspotsReviewed() - adjustment));
+      issueStats.hotspotCount() + effectiveAdjustment, issueStats.hotspotsReviewed() - effectiveAdjustment);
     if (updatedIssueStats.issueCount() != 0 || updatedIssueStats.hotspotCount() != 0 || updatedIssueStats.hotspotsReviewed() != 0) {
       issueStatsByRuleKeyDao.upsert(aggregationId, aggregationType, updatedIssueStats);
     } else {

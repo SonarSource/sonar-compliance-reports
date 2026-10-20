@@ -89,7 +89,7 @@ class IssueIngestionServiceTest {
 
     underTest.adjustHotspotStats(PROJECT_ID, PROJECT, "cs:100", -2);
 
-    verify(dao).upsert(PROJECT_ID, PROJECT, new IssueStats("cs:100", 0, 1, 1, 0, 2));
+    verify(dao).upsert(PROJECT_ID, PROJECT, new IssueStats("cs:100", 0, 1, 1, 0, 1));
   }
 
   @Test
