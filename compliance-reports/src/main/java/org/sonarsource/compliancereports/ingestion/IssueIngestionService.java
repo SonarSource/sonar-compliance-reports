@@ -20,9 +20,7 @@
 package org.sonarsource.compliancereports.ingestion;
 
 import jakarta.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.sonarsource.compliancereports.dao.AggregationType;
 import org.sonarsource.compliancereports.dao.IssueStats;
@@ -33,7 +31,7 @@ public class IssueIngestionService {
 
   private enum IssueStatus {
     TO_REVIEW,
-    OPEN
+    REVIEWED
   }
 
   private final IssueStatsByRuleKeyDao issueStatsByRuleKeyDao;
@@ -51,13 +49,11 @@ public class IssueIngestionService {
   }
 
   private static List<IssueStats> calculateIssueStats(List<IssueFromAnalysis> issueData) {
-    List<IssueStats> results = new ArrayList<>();
-    Map<String, List<IssueFromAnalysis>> issuesByRuleKey = issueData.stream()
-      .collect(Collectors.groupingBy(IssueFromAnalysis::ruleKey));
-    for (Map.Entry<String, List<IssueFromAnalysis>> entry : issuesByRuleKey.entrySet()) {
-      results.add(calculateIssueStatsForIssuesWithRule(entry.getKey(), entry.getValue()));
-    }
-    return results;
+    return issueData.stream()
+      .collect(Collectors.groupingBy(IssueFromAnalysis::ruleKey))
+      .entrySet().stream()
+      .map(entry -> calculateIssueStatsForIssuesWithRule(entry.getKey(), entry.getValue()))
+      .toList();
   }
 
   private static IssueStats calculateIssueStatsForIssuesWithRule(String ruleKey, List<IssueFromAnalysis> issues) {
@@ -71,7 +67,7 @@ public class IssueIngestionService {
       if (issue.isHotspot()) {
         if (IssueStatus.TO_REVIEW.toString().equals(issue.status())) {
           hotspotsToReview++;
-        } else {
+        } else if (IssueStatus.REVIEWED.toString().equals(issue.status())) {
           hotspotsReviewed++;
         }
       } else {
@@ -94,8 +90,10 @@ public class IssueIngestionService {
       .findFirst()
       .orElse(new IssueStats(ruleKey, 0, 1, 1, 0, 0));
 
+    // Bound the transfer by the available counts so neither side goes negative and the total hotspot count is preserved
+    int effectiveAdjustment = Math.max(-issueStats.hotspotCount(), Math.min(adjustment, issueStats.hotspotsReviewed()));
     var updatedIssueStats = new IssueStats(issueStats.ruleKey(), 0, issueStats.rating(), issueStats.mqrRating(),
-      issueStats.hotspotCount() + adjustment, issueStats.hotspotsReviewed() - adjustment);
+      issueStats.hotspotCount() + effectiveAdjustment, issueStats.hotspotsReviewed() - effectiveAdjustment);
     if (updatedIssueStats.issueCount() != 0 || updatedIssueStats.hotspotCount() != 0 || updatedIssueStats.hotspotsReviewed() != 0) {
       issueStatsByRuleKeyDao.upsert(aggregationId, aggregationType, updatedIssueStats);
     } else {
@@ -122,7 +120,7 @@ public class IssueIngestionService {
   }
 
   private IssueStats getUpdatedIssueStats(String aggregationId, String ruleKey, IssueStats oldStats, int adjustment) {
-    int newIssueCount = oldStats.issueCount() + adjustment;
+    int newIssueCount = Math.max(0, oldStats.issueCount() + adjustment);
     if (newIssueCount == 0) {
       return new IssueStats(oldStats.ruleKey(), newIssueCount, 1, 1, 0, 0);
     }

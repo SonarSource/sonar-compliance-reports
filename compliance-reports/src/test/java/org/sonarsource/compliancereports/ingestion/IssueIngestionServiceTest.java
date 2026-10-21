@@ -67,6 +67,42 @@ class IssueIngestionServiceTest {
   }
 
   @Test
+  void onIngestion_shouldIgnoreHotspotsWithUnknownStatus() {
+    var issues = List.of(
+      new IssueFromAnalysis("cs:100", "TO_REVIEW", true, 5, 5),
+      new IssueFromAnalysis("cs:100", "REVIEWED", true, 5, 5),
+      new IssueFromAnalysis("cs:100", "OPEN", true, 5, 5),
+      new IssueFromAnalysis("cs:100", null, true, 5, 5)
+    );
+
+    underTest.ingest(PROJECT_ID, PROJECT, issues);
+    ArgumentCaptor<List<IssueStats>> issuesCaptor = ArgumentCaptor.captor();
+
+    verify(dao).deleteAndInsertIssueStats(eq(PROJECT_ID), eq(PROJECT), issuesCaptor.capture());
+    assertThat(issuesCaptor.getValue()).containsExactly(new IssueStats("cs:100", 0, 1, 1, 1, 1));
+  }
+
+  @Test
+  void onAdjustHotspotStats_shouldNotProduceNegativeCounts() {
+    when(dao.getIssueStats(PROJECT_ID, PROJECT))
+      .thenReturn(List.of(new IssueStats("cs:100", 0, 1, 1, 1, 0)));
+
+    underTest.adjustHotspotStats(PROJECT_ID, PROJECT, "cs:100", -2);
+
+    verify(dao).upsert(PROJECT_ID, PROJECT, new IssueStats("cs:100", 0, 1, 1, 0, 1));
+  }
+
+  @Test
+  void onAdjustIssueStats_shouldNotProduceNegativeCounts() {
+    when(dao.getIssueStats(PROJECT_ID, PROJECT))
+      .thenReturn(List.of(new IssueStats("java:1", 1, 2, 2, 0, 0)));
+
+    underTest.adjustIssueStats(PROJECT_ID, PROJECT, "java:1", 2, 2, -3);
+
+    verify(dao).deleteByAggregationAndRuleKey(PROJECT_ID, PROJECT, "java:1");
+  }
+
+  @Test
   void onAdjustHotspotStats_shouldUpdateDataStore() {
     var initialHotspotCount = 1;
     var initialiHotspotsReviewed = 3;
