@@ -41,7 +41,7 @@ subprojects {
   configurations.configureEach {
     resolutionStrategy {
       // Force a newer version of log4j-core to avoid vulnerabilities.
-      force 'org.apache.logging.log4j:log4j-core:2.25.4'
+      force 'org.apache.logging.log4j:log4j-core:2.26.1'
       force libs.assertj.core
     }
   }
