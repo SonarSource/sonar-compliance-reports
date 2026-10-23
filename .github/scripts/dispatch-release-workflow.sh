@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ "$#" -ne 2 ]]; then
-  echo "usage: $0 <version> <release-id>" >&2
+  echo "usage: $0 <version> <dry-run>" >&2
   exit 64
 fi
 
@@ -12,21 +12,21 @@ if [[ -z "${GITHUB_OUTPUT:-}" ]]; then
   exit 1
 fi
 
-if [[ -z "${GITHUB_REF_NAME:-}" ]]; then
-  echo "GITHUB_REF_NAME must be set" >&2
+if [[ -z "${DEFAULT_BRANCH:-}" ]]; then
+  echo "DEFAULT_BRANCH must be set" >&2
   exit 1
 fi
 
 version="$1"
-release_id="$2"
+dry_run="$2"
 workflow_file="release.yml"
 dispatch_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 dispatch_output=""
 run_url=""
 run_id=""
 
-if ! dispatch_output="$(gh workflow run "${workflow_file}" --ref "${GITHUB_REF_NAME}" -f "version=${version}" -f "releaseId=${release_id}")"; then
-  echo "::error title=Release dispatch failed::Unable to dispatch ${workflow_file} for ${version} (releaseId=${release_id})."
+if ! dispatch_output="$(gh workflow run "${workflow_file}" --ref "${DEFAULT_BRANCH}" -f "version=${version}" -f "dryRun=${dry_run}")"; then
+  echo "::error title=Release dispatch failed::Unable to dispatch ${workflow_file} for ${version} (dryRun=${dry_run})." >&2
   exit 1
 fi
 
@@ -40,7 +40,7 @@ if [[ -z "${run_id}" ]]; then
     run_id="$(
       gh run list \
         --workflow "${workflow_file}" \
-        --branch "${GITHUB_REF_NAME}" \
+        --branch "${DEFAULT_BRANCH}" \
         --event workflow_dispatch \
         --limit 20 \
         --json createdAt,databaseId,displayTitle \
