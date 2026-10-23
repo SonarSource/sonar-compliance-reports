@@ -1,21 +1,19 @@
 name: Release
 
-run-name: Release ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
+run-name: Release ${{ inputs.version }}
 
 on:
-  release:
-    types:
-      - published
   workflow_dispatch:
     inputs:
       version:
-        description: Release tag to process, for example 2.0.0.383
+        description: Full version including build number, for example 2.0.0.383
         required: true
         type: string
-      releaseId:
-        description: Existing GitHub release ID to reuse when retrying a kept release
-        required: true
-        type: string
+      dryRun:
+        description: Flag to enable the dry-run execution
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -24,9 +22,8 @@ permissions:
 
 jobs:
   release:
-    if: ${{ github.event_name != 'release' || !contains(format('{0}', github.event.release.body), '<!-- sonar-compliance-reports:release-origin=operator -->') }}
     uses: ./.github/workflows/release-core.yml
     secrets: inherit
     with:
-      version: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
-      releaseId: ${{ github.event_name == 'workflow_dispatch' && inputs.releaseId || github.event.release.id }}
+      version: ${{ inputs.version }}
+      dryRun: ${{ inputs.dryRun }}
