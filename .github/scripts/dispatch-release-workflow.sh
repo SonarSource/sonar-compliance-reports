@@ -56,7 +56,7 @@ if [[ -z "${run_id}" ]]; then
 fi
 
 if [[ -z "${run_id}" ]]; then
-  echo "::error title=Dispatched release run not found::Triggered ${workflow_file} for ${version}, but could not resolve the downstream run id."
+  echo "::error title=Dispatched release run not found::Triggered ${workflow_file} for ${version}, but could not resolve the downstream run id." >&2
   exit 1
 fi
 
